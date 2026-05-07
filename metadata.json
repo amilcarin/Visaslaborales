@@ -1,0 +1,13 @@
+{
+  "name": "VisaExpert Guatemala",
+  "description": "Centro Privado de Oportunidades Laborales Internacionales USA & Canadá. Intermediación laboral transparente, procesos de movilidad legal y capacitación profesional.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "AI-powered assistant",
+    "Visa application management",
+    "Digital document guidance"
+  ]
+}

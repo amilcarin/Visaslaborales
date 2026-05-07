@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Visa Applications Rules
+    match /visaApplications/{applicationId} {
+      // Allow public GET if they have the specific ID. 
+      // Do NOT allow LIST to prevent scraping applications.
+      allow get: if isValidId(applicationId);
+      
+      // Default deny for others
+      allow list: if false;
+      allow write: if false;
+    }
+
+    // Prospects Rules
+    match /prospects/{prospectId} {
+      // Allow anybody to create a prospect (public form)
+      allow create: if isValidId(prospectId) 
+        && request.resource.data.nombre is string 
+        && request.resource.data.telefono is string
+        && request.resource.data.createdAt == request.time;
+        
+      // Only admins or specific users could read (disabled for now for privacy)
+      allow read, update, delete: if false;
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "entities": {
+    "VisaApplication": {
+      "title": "Visa Application",
+      "description": "Represents a visa application status record.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["Processing", "Approved", "Denied", "Awaiting Documents"],
+          "description": "Current status of the application"
+        },
+        "applicantName": {
+          "type": "string",
+          "description": "Name of the applicant"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["status", "applicantName", "updatedAt"]
+    },
+    "Prospect": {
+      "title": "Prospect",
+      "description": "Information from users who filled out the contact form.",
+      "type": "object",
+      "properties": {
+        "nombre": { "type": "string" },
+        "localidad": { "type": "string" },
+        "telefono": { "type": "string" },
+        "tipoTrabajo": { "type": "string" },
+        "educacion": { "type": "string" },
+        "experiencia": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nombre", "localidad", "telefono", "tipoTrabajo", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/visaApplications/{applicationId}": {
+      "schema": "VisaApplication",
+      "description": "Collection of visa application status records indexed by reference number."
+    },
+    "/prospects/{prospectId}": {
+      "schema": "Prospect",
+      "description": "Collection of contact form submissions."
+    }
+  }
+}
