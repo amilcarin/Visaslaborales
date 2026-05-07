@@ -1,101 +1,73 @@
-# Guía de Marketing Digital para VisaExpert Guatemala
+# 🚀 Estrategia de Marketing Digital
+## 🏢 Centro de Oportunidades Laborales (C.O.L.)
 
-Esta guía te ayudará a configurar y optimizar tus redes sociales para captar clientes de manera profesional y persuasiva.
-
----
-
-## 1. TikTok: Conectando con la Audiencia
-
-**Propósito:** Generar confianza y viralidad con contenido educativo.
-
-### Perfil
-- **Foto:** Usa el logotipo profesional que generamos.
-- **Biografía:** ✈️ Asesoría Experta VIsas EE.UU. & Canadá | 🏢 Frente a Embajada Z.16 | 🌟 98% Éxito | 👇 Agenda tu cita aquí [Link a Web o WhatsApp]
-- **Mensaje de Bienvenida (Auto):** "¡Hola! Gracias por contactarnos. 🚌 ¿Buscas visa de trabajo, turista o estudio? Cuéntame un poco de tu caso."
-
-### Ideas de Contenido (Videos)
-1. **Mitos sobre la visa:** "Mito: Necesitas millones en el banco. Realidad: Necesitas demostrar lazos con tu país."
-2. **Pasos rápidos:** Un carrusel o video corto de 30 segundos con los 5 pasos del trámite.
-3. **¿Sabías qué?:** "Sabías que estar frente a la embajada nos permite ayudarte minutos antes de tu cita en caso de emergencia?"
-4. **Historias de éxito:** Foto de un cliente feliz (con permiso) o captura del mensaje "Visa Aprobada".
-5. **Simulacro de entrevista:** Tú haciendo de cónsul y respondiendo "Mal vs Bien" a una pregunta común.
-
-### Respuestas Rápidas para Comentarios
-- "¡Hola! Para asesorarte mejor, escríbenos al WhatsApp 59686584 o visita nuestra web en el perfil."
-- "El costo es un pago único de Q1,500. ¡Vale la pena asegurar tu inversión!"
+Esta guía es tu hoja de ruta para dominar las redes sociales, generar confianza y convertir prospectos en clientes reales para asesoría de visas en Guatemala.
 
 ---
 
-## 2. WhatsApp Business: Tu herramienta de cierre
+## 📱 1. TikTok: El Motor de Confianza
+> **Objetivo:** Viralidad y autoridad mediante contenido educativo y humano.
 
-**Propósito:** Profesionalizar la comunicación directa.
+### 👤 Perfil Estrella
+| Elemento | Configuración Sugerida |
+| :--- | :--- |
+| **Foto** | Logotipo oficial (C.O.L.) |
+| **Biografía** | ✈️ Asesoría Experta Visas USA & Canadá<br>🏢 Frente a Embajada Z.16<br>🌟 Procesos Transparentes<br>👇 Agenda tu cita aquí [Link] |
+| **Auto-Reply** | 👋 ¡Hola! Soy Alice de C.O.L. ¿Buscas visa de trabajo o turismo? Cuéntanos tu caso. |
 
-### Configuración del Perfil
-- **Nombre:** VisaExpert Guatemala 🇬🇹
-- **Dirección:** Boulevard Austriaco zona 16, Guatemala (Frente a la Embajada de EE. UU.)
-- **Categoría:** Servicio de Consultoría
-- **Catálogo:**
-  - *Producto 1:* Asesoría Visa USA (Q1,500)
-  - *Producto 2:* Asesoría Visa Canadá (Q1,500)
-
-### Mensajería Automática
-- **Bienvenida:** "¡Bienvenido a VisaExpert! Soy Alice, tu asistente virtual. Para una atención rápida, indícame: 1. Tu nombre, 2. Tipo de visa (Trabajo/Turismo) y 3. Si ya tienes pasaporte."
-- **Ausencia:** "Gracias por escribir. Por ahora estamos fuera de oficina, pero déjanos tu consulta y te responderemos en cuanto abramos. ¡Tu visa es nuestra prioridad!"
-- **Respuesta Rápida (/requisitos):** "Hola, los documentos base son: Pasaporte vigente, Constancia de trabajo, Estados de cuenta (3 meses) y Cédula/DPI. Te enviamos el PDF con el detalle en breve."
-
----
-
-## 3. Facebook: Presencia Institucional
-
-**Propósito:** Seriedad y comunidad.
-
-### Portada y Logo
-- **Logo:** Logo circular en fondo blanco.
-- **Portada:** La imagen del skyline o familia feliz con el texto grande: "98% DE EFICIENCIA EN TU VISA".
-
-### Sección 'Acerca de'
-- **Historia:** "Nacimos frente a la embajada para ser el soporte que todo viajero necesita. Con una eficiencia del 98%, nuestra misión es que llegues al cónsul preparado, seguro y con la documentación perfecta."
-- **Contacto:** WhatsApp 59686584 | Ciudad de Guatemala.
+### 🎬 Ideas de Contenido Viral
+1.  **❌ Mitos vs ✅ Realidades:** Desmiente que "se necesita ser millonario".
+2.  **⏱️ Proceso Express:** Paso a paso de 30 segundos sobre el llenado del DS-160.
+3.  **📍 Ubicación Estratégica:** Video mostrando la oficina frente a la Embajada (genera seguridad inmediata).
+4.  **💬 Simulacros:** "¿Qué responder si el cónsul pregunta por tu familia?"
 
 ---
 
-## 4. Telegram: ¿Es necesario?
+## 📩 2. WhatsApp Business: El Centro de Cierre
+> **Objetivo:** Profesionalismo y rapidez en la respuesta.
 
-**Factibilidad:** SI, para **DIFUSIÓN**.
-- **Idea:** Crea un "Canal" (no grupo) llamado "Alertas de Visas GT".
-- **Uso:** Publica cuando se abran citas nuevas (que son escasas) o noticias sobre cambios en leyes migratorias.
-- **Bot de Información:** Puedes usar @BotFather para crear un menú simple que entregue formularios en PDF automáticamente.
+| Ajuste | Valor Sugerido |
+| :--- | :--- |
+| **Nombre** | Centro de Oportunidades Laborales (C.O.L.) |
+| **Dirección** | Blvd. Austriaco, Zona 16 (Frente a la Embajada USA) |
+| **Catálogo** | 📋 Asesoría Técnica USA (Q1,500)<br>🍁 Asesoría Técnica Canadá (Q1,500) |
 
----
-
-## 5. Recursos del Repositorio
-Para que el proyecto se vea profesional, asegúrate de que los siguientes archivos estén en la carpeta raíz (o subidos vía el editor):
-
-- `logo.png`: El logotipo circular de VisaExpert.
-- `banner.png`: La imagen de portada con las banderas y el equipo.
-- `MARKETING_GUIDE.md`: Este documento con las estrategias.
-
-### Prompts de Generación (Backup)
-Si necesitas regenerar las imágenes, usa estos prompts:
-
-**Logo:**
-> "A professional circular seal logo for 'VisaExpert Guatemala'. The design should be minimalist and impactful, featuring a globe icon with a rising airplane silhouette in the center. Colors should be deep navy blue and metallic gold on a clean white background. Bold, sans-serif typography encircling the graphic."
-
-**Portada (Banner):**
-> "High-resolution Facebook cover banner for 'VisaExpert Guatemala'. Diverse group of smiling Guatemalan people in business suits and traditional Mayan clothing. Background with Guatemalan, USA, and Canadian flags blended artistically. Professional lighting, warm atmosphere. Text at bottom: WhatsApp 5968-6584."
+> [!IMPORTANT]
+> **Mensaje de Bienvenida:**
+> "¡Bienvenido a C.O.L.! Soy Alice. Para asesorarte hoy, envíanos: 1. Nombre completo, 2. Tipo de visa de interés, 3. ¿Ya tienes pasaporte?"
 
 ---
 
-## 6. Configuración de Mapas Interactivos
-Para que el mapa interactivo funcione correctamente, se requiere una **Google Maps Platform API Key**.
+## 👥 3. Facebook: Presencia Institucional
+> **Objetivo:** Comunidad, testimonios y seriedad.
 
-1. Ve a [Google Cloud Console](https://console.cloud.google.com/google/maps-apis/start).
-2. Crea un proyecto y habilita "Maps JavaScript API".
-3. Genera una API Key.
-4. En **AI Studio**, ve a **Settings (⚙️)** -> **Secrets**.
-5. Crea un secreto llamado `GOOGLE_MAPS_PLATFORM_KEY` y pega tu llave.
+*   **Identidad Visual:** Usa el logo en alta resolución y una portada que incluya el mensaje: *"Conectamos talento con oportunidades reales"*.
+*   **Sección de Opiniones:** Incentiva a cada cliente exitoso a dejar una opinión. **El 98% de la decisión de un cliente nuevo depende de las opiniones de otros.**
 
 ---
 
-## Recomendación Final
-Publica al menos 3 TikToks por semana y comparte los mismos videos como Reels en Facebook. La constancia genera confianza.
+## 📡 4. Otros Canales: Telegram & Reels
+*   **Telegram:** Crea un canal de **"Alertas Migratorias"**. Publica noticias sobre disponibilidad de citas o cambios en leyes. Es una excelente forma de mantener a tu audiencia "caliente" hasta que decidan comprar.
+*   **Instagram/Reels:** Replica el contenido de TikTok. Diferentes plataformas atraen diferentes edades de clientes.
+
+---
+
+## 🎨 5. Recursos Visuales (Prompts)
+Si deseas generar nuevas imágenes con IA, utiliza estos comandos optimizados:
+
+> **Logo Pro:**
+> *"A professional circular prestige logo for 'Centro de Oportunidades Laborales'. Design: A global map with a human silhouette reaching for a star. Colors: Royal Blue and Metallic Gold. Typography: Bold, clean sans-serif inside the circle."*
+
+> **Banner Facebook:**
+> *"Professional panoramic banner. Background: Guatemalan landscape with blurred silhouettes of famous landmarks from USA and Canada. Foreground: Text 'ASESORÍA PROFESIONAL' in 3D gold letters. High-end, corporate aesthetic."*
+
+---
+
+## 💡 Recomendación Final
+1.  **Frecuencia:** Publica al menos **3 veces por semana** en TikTok.
+2.  **Humanización:** Muestra al equipo trabajando. La gente le compra a personas, no a logotipos.
+3.  **Alice:** Recuerda a los usuarios que pueden chatear con "Alice AI" en tu sitio web para respuestas instantáneas.
+
+---
+*© 2026 Centro de Oportunidades Laborales - Guatemala*
+
