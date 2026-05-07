@@ -36,9 +36,47 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["nombre", "localidad", "telefono", "tipoTrabajo", "createdAt"]
+    },
+    "ChatSession": {
+      "title": "Chat Session",
+      "description": "Represents a live chat session between a user and potentially an advisor.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "status": { "type": "string", "enum": ["ai", "waiting_advisor", "active_advisor", "closed"] },
+        "lastMessageAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["status", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A single message in a chat session.",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "ai", "agent"] },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["role", "content", "createdAt"]
+    },
+    "AdvisorSupportRequest": {
+      "title": "Advisor Support Request",
+      "description": "A notification for agents that an advisor is requested in a chat.",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "active", "resolved"] },
+        "requestedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sessionId", "status", "requestedAt"]
     }
   },
   "firestore": {
+    "/advisor_support_requests/{requestId}": {
+      "schema": "AdvisorSupportRequest",
+      "description": "Notifications for agents to join a chat."
+    },
     "/visaApplications/{applicationId}": {
       "schema": "VisaApplication",
       "description": "Collection of visa application status records indexed by reference number."
@@ -46,6 +84,14 @@
     "/prospects/{prospectId}": {
       "schema": "Prospect",
       "description": "Collection of contact form submissions."
+    },
+    "/chat_sessions/{sessionId}": {
+      "schema": "ChatSession",
+      "description": "Active and past chat sessions."
+    },
+    "/chat_sessions/{sessionId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Messages within a specific chat session."
     }
   }
 }

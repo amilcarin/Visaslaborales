@@ -15,6 +15,11 @@ service cloud.firestore {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    // Connection test document rule
+    match /test/connection {
+      allow read: if true;
+    }
+
     // Visa Applications Rules
     match /visaApplications/{applicationId} {
       // Allow public GET if they have the specific ID. 
@@ -36,6 +41,40 @@ service cloud.firestore {
         
       // Only admins or specific users could read (disabled for now for privacy)
       allow read, update, delete: if false;
+    }
+
+    // Chat Sessions Rules
+    match /chat_sessions/{sessionId} {
+      allow create: if isValidId(sessionId)
+        && request.resource.data.status is string
+        && request.resource.data.createdAt == request.time;
+      allow get: if true;
+      allow list: if false; // Users shouldn't list sessions
+      allow update: if (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lastMessageAt', 'requestType']))
+        && (request.resource.data.status in ["ai", "waiting_advisor", "active_advisor", "closed"]);
+      
+      match /messages/{messageId} {
+        allow create: if isValidId(messageId)
+          && request.resource.data.role in ["user", "ai", "agent"]
+          && request.resource.data.content is string
+          && request.resource.data.content.size() <= 2000
+          && request.resource.data.createdAt == request.time;
+        allow list, get: if true;
+      }
+    }
+
+    // Advisor Support Requests Rules
+    match /advisor_support_requests/{requestId} {
+      allow create: if request.resource.data.sessionId is string
+        && request.resource.data.status == "pending"
+        && request.resource.data.requestedAt == request.time;
+      allow read, update: if false; // Only agents via admin dashboard
+    }
+
+    // Push Subscriptions Rules
+    match /push_subscriptions/{subId} {
+      allow create: if request.resource.data.createdAt == request.time;
+      allow read, update: if false;
     }
   }
 }

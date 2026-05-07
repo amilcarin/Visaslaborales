@@ -23,10 +23,14 @@ import {
   Info,
   Mic,
   Volume2,
+  VolumeX,
   Loader2,
   ShieldCheck,
   Zap,
-  Share2
+  Share2,
+  Facebook,
+  Link,
+  Music
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ALICE_KNOWLEDGE } from './knowledge.ts';
@@ -35,12 +39,69 @@ import Markdown from 'react-markdown';
 import { jsPDF } from 'jspdf';
 import { GoogleGenAI } from "@google/genai";
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { 
+  doc, getDoc, addDoc, collection, serverTimestamp, 
+  onSnapshot, query, orderBy, setDoc, updateDoc, getDocFromServer,
+  initializeFirestore
+} from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: null,
+      email: null,
+      emailVerified: null,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 // --- Firebase Initialization ---
 const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+
+// Initialize with settings to fix "unavailable" connection errors in restricted environments
+const db = initializeFirestore(firebaseApp, {
+  experimentalForceLongPolling: true,
+}, firebaseConfig.firestoreDatabaseId || '(default)');
+
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+    console.log("Firestore connection successful");
+  } catch (error) {
+    if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('failed-precondition'))) {
+      console.error("Please check your Firebase configuration or network.");
+    } else {
+      console.error("Firestore connection error:", error);
+    }
+  }
+}
+testConnection();
 
 // --- WhatsApp & Automation Helpers ---
 const openWhatsApp = (msg: string) => {
@@ -209,7 +270,7 @@ const VoiceAssistant = () => {
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const ai = new GoogleGenAI({ apiKey: (process as any).env.GEMINI_API_KEY as string });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -237,10 +298,16 @@ const VoiceAssistant = () => {
   }, []);
 
   const speak = async (text: string) => {
+    // Remove markdown symbols and format currency for better narration
+    const cleanText = text
+      .replace(/[*#_`]/g, '')
+      .replace(/Q\s?([\d,.]+)/g, '$1 quetzales')
+      .replace(/(\d{2})(\d{2})[- ]?(\d{2})(\d{2})/g, '$1 $2 $3 $4');
+
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3.1-flash-tts-preview",
-        contents: [{ parts: [{ text }] }],
+        contents: [{ parts: [{ text: `Actúa como una asistente experta real. Narra este texto con una voz de mujer natural, fluida y cálida. Usa variaciones de tono expresivas, haz pausas naturales para que suene natural, y mantén un tono empático y profesional. No suenes mecánica. Texto: ${cleanText}` }] }],
         config: {
           responseModalities: ["AUDIO" as any],
           speechConfig: {
@@ -271,7 +338,7 @@ const VoiceAssistant = () => {
       }
     } catch (e) {
       console.warn("Gemini TTS fallback:", e);
-      const utterance = new SpeechSynthesisUtterance(text);
+      const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = 'es-GT';
       window.speechSynthesis.speak(utterance);
     }
@@ -284,7 +351,14 @@ const VoiceAssistant = () => {
         model: "gemini-3-flash-preview",
         contents: text,
         config: {
-          systemInstruction: "Eres un Agente de Llamada de VisaExpert Guatemala. Responde de forma muy breve (máximo 2 frases), profesional y amable. Tu respuesta será leída por un motor de voz.",
+          systemInstruction: `Eres un Agente de Llamada de "Centro de Oportunidades Laborales" en Guatemala. 
+          Responde de forma MUY BREVE (máximo 1 o 2 frases), profesional y amable. 
+          Al final de cada respuesta, si es pertinente, sugiere contactarnos por WhatsApp al 59 68 65 84 para agendar una cita.
+          INFORMACIÓN CRÍTICA: 
+          - Nuestra asesoría profesional tiene un costo de PAGO ÚNICO de Q1,500 por persona. 
+          - Estamos ubicados frente a la Embajada de EE. UU. en zona 16.
+          - Si preguntan por WhatsApp, diles que es el 59 68 65 84.
+          Tu respuesta será leída por un motor de voz.`,
         }
       });
 
@@ -515,6 +589,90 @@ const Navbar = ({ theme, toggleTheme }: { theme: 'light' | 'dark', toggleTheme: 
   );
 };
 
+const SocialShare = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const shareUrl = window.location.href;
+  const shareTitle = 'Centro de Oportunidades Laborales';
+  const shareText = 'Intermediación Laboral USA & Canadá · Procesos Transparentes · Oportunidades Verificadas.';
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(shareUrl);
+    alert("Enlace copiado al portapapeles");
+    setIsOpen(false);
+  };
+
+  const shareLinks = [
+    {
+      name: 'WhatsApp',
+      icon: <MessageCircle size={20} />,
+      color: 'bg-green-500',
+      action: () => window.open(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`, '_blank'),
+    },
+    {
+      name: 'Facebook',
+      icon: <Facebook size={20} />,
+      color: 'bg-blue-600',
+      action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank'),
+    },
+    {
+      name: 'TikTok',
+      icon: <Music size={20} />,
+      color: 'bg-black',
+      action: () => {
+        // Fallback for tiktok since it's hard to direct-share generic web URLs to app feed
+        handleCopy();
+      },
+    },
+    {
+      name: 'Copiar URL',
+      icon: <Link size={20} />,
+      color: 'bg-slate-600',
+      action: handleCopy,
+    },
+  ];
+
+  return (
+    <div className="relative group/share">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className={`p-6 rounded-[2rem] transition-all border flex items-center justify-center ${
+          isOpen 
+          ? 'bg-blue-600 text-white border-blue-600 scale-95 shadow-inner' 
+          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 hover:border-blue-200'
+        }`}
+        title="Compartir"
+      >
+        <Share2 size={24} className={isOpen ? 'rotate-12' : ''} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-4 flex gap-3 z-[100] backdrop-blur-xl"
+          >
+            {shareLinks.map((link) => (
+              <div key={link.name} className="flex flex-col items-center gap-2">
+                <button
+                  onClick={link.action}
+                  className={`w-12 h-12 ${link.color} text-white rounded-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg overflow-hidden relative`}
+                  title={link.name}
+                >
+                  {link.icon}
+                </button>
+                <span className="text-[9px] font-black uppercase tracking-tighter text-slate-400 dark:text-slate-500">{link.name}</span>
+              </div>
+            ))}
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-900 border-r border-b border-slate-200 dark:border-slate-800 rotate-45" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const Hero = () => (
   <section className="pt-48 pb-32 px-4 relative overflow-hidden">
     {/* High Impact Background Design */}
@@ -600,24 +758,7 @@ const Hero = () => (
           >
             SABER MÁS <Globe size={28} />
           </button>
-          <button 
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({
-                  title: 'Centro de Oportunidades Laborales',
-                  text: 'Intermediación Laboral USA & Canadá · Procesos Transparentes · Oportunidades Verificadas.',
-                  url: window.location.href,
-                }).catch((error) => console.log('Error sharing', error));
-              } else {
-                navigator.clipboard.writeText(window.location.href);
-                alert("Enlace copiado al portapapeles");
-              }
-            }}
-            className="p-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-[2rem] hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 border border-transparent hover:border-blue-200 transition-all"
-            title="Compartir"
-          >
-            <Share2 size={24} />
-          </button>
+          <SocialShare />
         </motion.div>
       </div>
 
@@ -814,6 +955,19 @@ const Services = () => (
 const BotAlice = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [status, setStatus] = useState<'ai' | 'waiting_advisor' | 'active_advisor' | 'closed'>('ai');
+  const [isSpeakingEnabled, setIsSpeakingEnabled] = useState(true);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const [sessionId, setSessionId] = useState<string>(() => {
+    let id = localStorage.getItem('alice_session_id');
+    if (!id) {
+      id = 'chat_' + Math.random().toString(36).substring(2, 11);
+      localStorage.setItem('alice_session_id', id);
+    }
+    return id;
+  });
+
   const [messages, setMessages] = useState<{ role: string; content: string }[]>(() => {
     try {
       const saved = localStorage.getItem('alice_chat_history_v2');
@@ -838,28 +992,177 @@ const BotAlice = () => {
     }
   }, [messages, isOpen]);
 
+  // Sync with Firestore for remote agent responses
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const q = query(
+      collection(db, 'chat_sessions', sessionId, 'messages'),
+      orderBy('createdAt', 'asc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added") {
+          const data = change.doc.data();
+          // If it's from an agent, add it to our local state if it's not already there
+          if (data.role === 'agent') {
+            setMessages(prev => {
+              // Simple deduplication by content in this turn for simplicity
+              const alreadyExists = prev.some(m => m.content === data.content && m.role === 'bot');
+              if (!alreadyExists) {
+                return [...prev, { role: 'bot', content: data.content }];
+              }
+              return prev;
+            });
+            setStatus('active_advisor');
+          }
+        }
+      });
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `chat_sessions/${sessionId}/messages`);
+    });
+
+    // Sync session status
+    const sessionUnsub = onSnapshot(doc(db, 'chat_sessions', sessionId), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.status) setStatus(data.status as any);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `chat_sessions/${sessionId}`);
+    });
+
+    return () => {
+      unsubscribe();
+      sessionUnsub();
+      if (currentAudioSourceRef.current) {
+        currentAudioSourceRef.current.stop();
+      }
+    };
+  }, [sessionId]);
+
+  const speak = async (text: string) => {
+    if (!isSpeakingEnabled) return;
+
+    // Remove markdown symbols from text for better narration
+    const cleanText = text
+      .replace(/[*#_`]/g, '')
+      .replace(/Q\s?([\d,.]+)/g, '$1 quetzales')
+      .replace(/(\d{2})(\d{2})[- ]?(\d{2})(\d{2})/g, '$1 $2 $3 $4');
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-flash-tts-preview",
+        contents: [{ parts: [{ text: `Actúa como una asistente experta real llamada Alice. Narra este texto con una voz de mujer natural, fluida y cálida. Usa variaciones de tono expresivas según el contenido, haz pausas naturales donde corresponda y suena muy empática. Evita sonar como un robot. Texto: ${cleanText}` }] }],
+        config: {
+          responseModalities: ["AUDIO" as any],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Kore' },
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        const audioData = atob(base64Audio);
+        const arrayBuffer = new ArrayBuffer(audioData.length);
+        const view = new Uint8Array(arrayBuffer);
+        for (let i = 0; i < audioData.length; i++) {
+          view[i] = audioData.charCodeAt(i);
+        }
+
+        if (!audioContextRef.current) {
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+
+        // Stop current audio if playing
+        if (currentAudioSourceRef.current) {
+          currentAudioSourceRef.current.stop();
+        }
+
+        const buffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
+        const source = audioContextRef.current.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContextRef.current.destination);
+        currentAudioSourceRef.current = source;
+        source.start();
+      }
+    } catch (e) {
+      console.warn("Gemini TTS Error:", e);
+      // Fallback to browser synthesis
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = 'es-GT';
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const saveMessageToFirestore = async (role: 'user' | 'ai' | 'agent', content: string) => {
+    try {
+      // Ensure session exists
+      const sessionRef = doc(db, 'chat_sessions', sessionId);
+      const sessionSnap = await getDoc(sessionRef).catch(e => handleFirestoreError(e, OperationType.GET, `chat_sessions/${sessionId}`));
+      
+      if (!sessionSnap.exists()) {
+        await setDoc(sessionRef, {
+          status: 'ai',
+          createdAt: serverTimestamp(),
+          lastMessageAt: serverTimestamp()
+        }).catch(e => handleFirestoreError(e, OperationType.CREATE, `chat_sessions/${sessionId}`));
+      } else {
+        await updateDoc(sessionRef, {
+          lastMessageAt: serverTimestamp()
+        }).catch(e => handleFirestoreError(e, OperationType.UPDATE, `chat_sessions/${sessionId}`));
+      }
+
+      await addDoc(collection(db, 'chat_sessions', sessionId, 'messages'), {
+        role,
+        content,
+        createdAt: serverTimestamp()
+      }).catch(e => handleFirestoreError(e, OperationType.CREATE, `chat_sessions/${sessionId}/messages`));
+    } catch (e) {
+      console.error("Error saving message to Firestore:", e);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
     
     const userMsg = input;
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setInput('');
+    
+    // Always save user message to Firestore for agent context
+    saveMessageToFirestore('user', userMsg);
+
+    if (status !== 'ai') {
+      // If we're waiting for an advisor or talking to one, don't trigger Alice
+      return;
+    }
+
     setIsTyping(true);
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const prompt = `
-        Eres Alice, la asistente virtual experta de "VisaExpert Guatemala". 
-        Tu tono es profesional, amable, servicial y altamente detallista.
-        Tu conocimiento se basa en: ${JSON.stringify(ALICE_KNOWLEDGE)}
+        Eres Alice, la asistente virtual experta y oficial de "Centro de Oportunidades Laborales" (C.O.L.) en Guatemala. 
+        Tu personalidad: Profesional, amable, empática y sumamente eficiente.
+        Tu objetivo: Guiar a los usuarios en sus trámites de visa para USA y Canadá, filtrando interesados reales.
         
-        REGLAS:
-        1. Responde SIEMPRE en español con excelente gramática.
-        2. Si preguntan por costos, recuerda el pago único de Q1,500 y aclara que los aranceles consulares van por cuenta del usuario.
-        3. Si preguntan por ubicación, menciona zona 16 frente a la embajada.
-        4. No inventes datos que no estén en el conocimiento base.
-        5. Usa Markdown suave (negritas, listas) para facilitar la lectura.
-        6. Si el usuario parece muy interesado, anímalo a llenar el formulario de contacto o escribir al WhatsApp ${ALICE_KNOWLEDGE.whatsapp}.
+        REGLAS DE RESPUESTA:
+        1. Sé MUY BREVE (máximo 1-2 párrafos cortos). No abrumes con texto.
+        2. Proporciona la información técnica exacta basada en tu conocimiento: ${JSON.stringify(ALICE_KNOWLEDGE)}
+        3. Siempre sugiere contactar por WhatsApp al ${ALICE_KNOWLEDGE.whatsapp} si la duda requiere una cita personalizada.
+        4. Costos: Pago único de Q1,500 por asesoría técnica (aranceles consulares aparte).
+        5. Ubicación: Blvd. Austriaco, Zona 16, frente a la Embajada de EE. UU.
+        6. Si el usuario desea hablar con una persona real, instrúyele a usar el botón "Hablar con un Asesor" en la parte superior del chat.
+        7. No inventes beneficios migratorios; sé realista y honesta.
+        
+        Contexto de la conversación actual:
+        ${messages.slice(-5).map(m => `${m.role}: ${m.content}`).join('\n')}
         
         Pregunta del usuario: ${userMsg}
       `;
@@ -871,11 +1174,40 @@ const BotAlice = () => {
 
       const responseText = response.text || "Lo siento, tuve un pequeño problema al procesar tu solicitud. ¿Me lo puedes repetir?";
       setMessages(prev => [...prev, { role: 'bot', content: responseText }]);
+      saveMessageToFirestore('ai', responseText);
+      if (isSpeakingEnabled) {
+        speak(responseText);
+      }
     } catch (error) {
       console.error("Gemini Error:", error);
-      setMessages(prev => [...prev, { role: 'bot', content: "Lo siento, mi conexión con la central de inteligencia está fallando. Por favor escribe a nuestro WhatsApp oficial: " + ALICE_KNOWLEDGE.whatsapp }]);
+      const fallback = "Lo siento, mi conexión con la central de inteligencia está fallando. Por favor escribe a nuestro WhatsApp oficial: " + ALICE_KNOWLEDGE.whatsapp;
+      setMessages(prev => [...prev, { role: 'bot', content: fallback }]);
     } finally {
       setIsTyping(false);
+    }
+  };
+
+  const requestAdvisor = async () => {
+    setStatus('waiting_advisor');
+    try {
+      const sessionRef = doc(db, 'chat_sessions', sessionId);
+      await updateDoc(sessionRef, {
+        status: 'waiting_advisor',
+        lastMessageAt: serverTimestamp(),
+        requestType: 'advisor_intervention'
+      }).catch(e => handleFirestoreError(e, OperationType.UPDATE, `chat_sessions/${sessionId}`));
+
+      // Explicit notification for agents
+      await addDoc(collection(db, 'advisor_support_requests'), {
+        sessionId,
+        status: 'pending',
+        requestedAt: serverTimestamp(),
+        lastMessages: messages.slice(-3) // Context for the agent
+      }).catch(e => handleFirestoreError(e, OperationType.CREATE, "advisor_support_requests"));
+
+      setMessages(prev => [...prev, { role: 'bot', content: '⏳ ¡Entendido! He notificado a mis compañeros asesores. Un asesor real se unirá a este chat en un momento. Por favor, mantén esta ventana abierta.' }]);
+    } catch (e) {
+      console.error("Failed to request advisor:", e);
     }
   };
 
@@ -896,14 +1228,40 @@ const BotAlice = () => {
                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200" alt="Alice Avatar" className="w-full h-full object-cover rounded-xl" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-lg leading-tight">Alice AI</h4>
+                  <h4 className="font-bold text-lg leading-tight">{status === 'ai' ? 'Alice AI' : 'Soporte de Asesor'}</h4>
                   <div className="flex items-center gap-1.5 opacity-80">
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                    <p className="text-xs font-medium">Asesora en Línea</p>
+                    <span className={`w-2 h-2 rounded-full animate-pulse ${status === 'waiting_advisor' ? 'bg-amber-400' : 'bg-green-400'}`} />
+                    <p className="text-xs font-medium">
+                      {status === 'ai' ? 'Asesora en Línea' : status === 'waiting_advisor' ? 'Esperando Asesor...' : 'Asesor Conectado'}
+                    </p>
                   </div>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-colors"><X size={24}/></button>
+              <div className="flex items-center gap-2">
+                {status === 'ai' && (
+                  <button 
+                    onClick={requestAdvisor}
+                    className="text-[10px] bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg font-black uppercase tracking-widest transition-all"
+                  >
+                    Hablar con un Asesor
+                  </button>
+                )}
+                <button onClick={() => setIsOpen(false)} className="bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-colors"><X size={24}/></button>
+              </div>
+            </div>
+            {/* Audio Toggle Sub-header */}
+            <div className="px-6 py-2 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Audio Narración</span>
+               <button 
+                onClick={() => {
+                  setIsSpeakingEnabled(!isSpeakingEnabled);
+                  if (currentAudioSourceRef.current) currentAudioSourceRef.current.stop();
+                }}
+                className={`p-1.5 rounded-lg transition-all flex items-center gap-2 ${isSpeakingEnabled ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'}`}
+               >
+                 {isSpeakingEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                 <span className="text-[9px] font-black uppercase tracking-tighter">{isSpeakingEnabled ? 'Activado' : 'Desactivado'}</span>
+               </button>
             </div>
             {/* Chat Body */}
             <div ref={scrollRef} className="flex-1 p-6 overflow-y-auto space-y-6 bg-slate-50/50 dark:bg-slate-950/50 scroll-smooth">
@@ -941,7 +1299,7 @@ const BotAlice = () => {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Pregúntame sobre visas..."
+                    placeholder={status === 'ai' ? "Pregúntame sobre visas..." : "Escribe al asesor..."}
                     className="flex-1 bg-transparent px-2 py-3 text-sm focus:outline-none text-slate-900 dark:text-white"
                     disabled={isTyping}
                   />
@@ -1045,7 +1403,7 @@ const Testimonials = () => (
               </div>
             </div>
             <p className="text-lg italic leading-relaxed text-blue-50">
-              "Gracias a **VisaExpert Guatemala**, mi sueño de trabajar en Canadá se hizo realidad. El proceso fue claro, honesto y eficiente desde la primera cita."
+              "Gracias a **Centro de Oportunidades**, mi sueño de trabajar en Canadá se hizo realidad. El proceso fue claro, honesto y eficiente desde la primera cita."
             </p>
           </motion.div>
 
@@ -1111,10 +1469,10 @@ const FormSection = React.forwardRef<HTMLDivElement>((props, ref) => {
       await addDoc(collection(db, "prospects"), {
         ...formData,
         createdAt: serverTimestamp()
-      });
+      }).catch(e => handleFirestoreError(e, OperationType.CREATE, "prospects"));
 
       // 2. Open WhatsApp
-      const msg = `HOLA VISAEXPERT, ME INTERESA UNA ASESORÍA\n\n` +
+      const msg = `HOLA CENTRO DE OPORTUNIDADES, ME INTERESA UNA ASESORÍA\n\n` +
                   `👤 Nombre: ${formData.nombre}\n` +
                   `📍 Localidad: ${formData.localidad}\n` +
                   `💼 Interés: ${formData.tipoTrabajo}\n` +
@@ -1139,7 +1497,7 @@ const FormSection = React.forwardRef<HTMLDivElement>((props, ref) => {
       alert("Hubo un error al guardar tu información. Sin embargo, puedes contactarnos directamente por WhatsApp.");
       
       // Fallback to WhatsApp even if DB fails
-      const msg = `HOLA VISAEXPERT, ME INTERESA UNA ASESORÍA\n\n` +
+      const msg = `HOLA CENTRO DE OPORTUNIDADES, ME INTERESA UNA ASESORÍA\n\n` +
                   `👤 Nombre: ${formData.nombre}\n` +
                   `📞 Teléfono: ${formData.telefono}\n\n` +
                   `Hubo un error en el formulario web, pero deseo agendar mi cita.`;
@@ -1323,7 +1681,7 @@ const Downloads = () => {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(22);
       doc.setFont("helvetica", "bold");
-      doc.text("VisaExpert", 50, 22);
+      doc.text("C.O.L.", 50, 22);
       doc.setFontSize(12);
       doc.setFont("helvetica", "normal");
       doc.text("Guatemala", 50, 29);
@@ -1336,7 +1694,7 @@ const Downloads = () => {
       doc.setFont("helvetica", "bold");
       doc.text("VE", 28, 24, { align: "center" });
       doc.setFontSize(22);
-      doc.text("VisaExpert", 45, 22);
+      doc.text("C.O.L.", 45, 22);
       doc.setFontSize(12);
       doc.setFont("helvetica", "normal");
       doc.text("Guatemala", 45, 29);
@@ -1365,7 +1723,7 @@ const Downloads = () => {
     doc.setFontSize(10);
     doc.setFont("helvetica", "italic");
     doc.setTextColor(100, 116, 139);
-    doc.text("Documento oficial para clientes de VisaExpert Guatemala. Blvd. Austriaco, Zona 16.", 20, 78);
+    doc.text("Documento oficial para clientes de Centro de Oportunidades Laborales. Blvd. Austriaco, Zona 16.", 20, 78);
 
     // List Logic
     doc.setFontSize(11);
@@ -1411,7 +1769,7 @@ const Downloads = () => {
     doc.setFontSize(7);
     doc.text("CERTIFICADO", sealX + 20, sealY + 15, { align: "center" });
     doc.setFontSize(9);
-    doc.text("VISAEXPERT", sealX + 20, sealY + 22, { align: "center" });
+    doc.text("CENTRO DE OPORTUNIDADES", sealX + 20, sealY + 22, { align: "center" });
     doc.setFontSize(7);
     doc.text("GUATEMALA", sealX + 20, sealY + 28, { align: "center" });
 
@@ -1422,7 +1780,7 @@ const Downloads = () => {
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.text("Ubicación: Blvd. Austriaco frente a Embajada EE.UU, Z.16", 20, pageHeight - 9);
-    doc.text("WhatsApp: +502 5968 6584 | www.visaexpert.com.gt", pageWidth - 20, pageHeight - 9, { align: "right" });
+    doc.text("WhatsApp: +502 5968 6584 | www.oportunidades.com.gt", pageWidth - 20, pageHeight - 9, { align: "right" });
 
     doc.save(`${title.replace(/\s+/g, '_')}.pdf`);
   };
@@ -1450,7 +1808,7 @@ const Downloads = () => {
     "**VISA CANADÁ**",
     "Formulario de Información Familiar (IMM5645).",
     "Cuestionario de Historial de Viajes y ArriveCAN.",
-    "**ASISTENCIA VISAEXPERT**",
+    "**ASISTENCIA C.O.L.**",
     "Nosotros nos encargamos del llenado técnico de cada uno de estos documentos para garantizar que no existan errores gramaticales o de fondo."
   ];
 
@@ -1470,7 +1828,7 @@ const Downloads = () => {
             </div>
           </button>
           <button 
-            onClick={() => generatePDF("Requisitos_Legales_VisaExpert", requisitosItems, "Listado de Requisitos Legales")}
+            onClick={() => generatePDF("Requisitos_Legales_COL", requisitosItems, "Listado de Requisitos Legales")}
             className="bg-white/10 hover:bg-white/20 px-8 py-6 rounded-3xl border border-white/20 flex flex-col items-center gap-4 transition-all group"
           >
             <FileDown size={32} className="text-green-400 group-hover:scale-110 transition-transform" />
@@ -1659,9 +2017,9 @@ const VisaStatusChecker = () => {
 
     try {
       const docRef = doc(db, "visaApplications", refNumber.trim());
-      const docSnap = await getDoc(docRef);
+      const docSnap = await getDoc(docRef).catch(e => handleFirestoreError(e, OperationType.GET, `visaApplications/${refNumber.trim()}`));
 
-      if (docSnap.exists()) {
+      if (docSnap && docSnap.exists()) {
         const data = docSnap.data();
         setStatusData(data);
       } else {
@@ -1901,7 +2259,7 @@ export default function App() {
               <ul className="space-y-4 text-slate-500 dark:text-slate-400 text-sm font-bold">
                 <li><a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase tracking-widest text-[10px]">Privacidad</a></li>
                 <li><a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase tracking-widest text-[10px]">Términos</a></li>
-                <li><button onClick={() => alert("Aviso: VisaExpert no garantiza la aprobación de visas, esa decisión es exclusiva del cónsul.")} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase tracking-widest text-[10px] text-left">Descargo</button></li>
+                <li><button onClick={() => alert("Aviso: Centro de Oportunidades no garantiza la aprobación de visas, esa decisión es exclusiva del cónsul.")} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors uppercase tracking-widest text-[10px] text-left">Descargo</button></li>
               </ul>
             </div>
           </div>
