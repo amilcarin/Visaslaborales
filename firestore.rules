@@ -11,8 +11,27 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTracking(data) {
+      return data.trackingId is string && data.trackingId.size() <= 20
+        && data.applicantName is string && data.applicantName.size() <= 100
+        && data.currentStep is int && data.currentStep >= 1 && data.currentStep <= 7
+        && data.steps is list && data.steps.size() == 7;
+    }
+
+    // Admins Collection
+    match /admins/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+      allow create: if isSignedIn() 
+        && request.auth.token.email in ["amilcaralvarado330@gmail.com", "admin@visaexpert.com"]
+        && request.auth.token.email_verified == true;
     }
 
     // Connection test document rule
@@ -28,7 +47,7 @@ service cloud.firestore {
       
       // Default deny for others
       allow list: if false;
-      allow write: if false;
+      allow write: if isAdmin();
     }
 
     // Prospects Rules
@@ -37,10 +56,32 @@ service cloud.firestore {
       allow create: if isValidId(prospectId) 
         && request.resource.data.nombre is string 
         && request.resource.data.telefono is string
+        && request.resource.data.trackingCode is string
         && request.resource.data.createdAt == request.time;
         
       // Only admins or specific users could read (disabled for now for privacy)
-      allow read, update, delete: if false;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Tracking Rules
+    match /tracking/{trackingId} {
+      // Allow creation during registration
+      allow create: if isValidId(trackingId)
+        && request.resource.data.trackingId == trackingId
+        && request.resource.data.applicantName is string
+        && request.resource.data.currentStep == 1
+        && request.resource.data.createdAt == request.time;
+      
+      // Allow public GET to see their own status
+      allow get: if isValidId(trackingId);
+      
+      // Update by admin
+      allow update: if isAdmin() && isValidTracking(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentStep', 'lastUpdated', 'steps'])
+        && request.resource.data.lastUpdated == request.time;
+
+      allow list: if isAdmin();
+      allow delete: if false;
     }
 
     // Chat Sessions Rules

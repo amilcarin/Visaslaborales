@@ -27,7 +27,8 @@ import {
   Share2,
   Facebook,
   Link,
-  Music
+  Music,
+  Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ALICE_KNOWLEDGE } from './knowledge.ts';
@@ -37,11 +38,13 @@ import { jsPDF } from 'jspdf';
 import { GoogleGenAI } from "@google/genai";
 import { initializeApp } from 'firebase/app';
 import { 
-  doc, getDoc, addDoc, collection, serverTimestamp, 
-  onSnapshot, query, orderBy, setDoc, updateDoc, getDocFromServer,
-  initializeFirestore
+  getFirestore, collection, addDoc, getDoc, setDoc, doc, updateDoc, 
+  onSnapshot, query, where, orderBy, limit, serverTimestamp, getDocFromServer
 } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
+import { 
+  getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User 
+} from 'firebase/auth';
+import { db, auth } from './lib/firebase';
 
 enum OperationType {
   CREATE = 'create',
@@ -78,13 +81,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
-// --- Firebase Initialization ---
-const firebaseApp = initializeApp(firebaseConfig);
-
-// Initialize with settings to fix "unavailable" connection errors in restricted environments
-const db = initializeFirestore(firebaseApp, {
-  experimentalForceLongPolling: true,
-}, firebaseConfig.firestoreDatabaseId || '(default)');
+// --- Firebase Initialization is handled in ./lib/firebase ---
 
 async function testConnection() {
   try {
@@ -1912,6 +1909,78 @@ const ConsultationTracker = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const ADMIN_EMAILS = ['amilcaralvarado330@gmail.com', 'admin@visaexpert.com'];
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      const isUserAdmin = u ? ADMIN_EMAILS.includes(u.email || '') : false;
+      setIsAdmin(isUserAdmin);
+
+      if (u && isUserAdmin) {
+        try {
+          const adminDocRef = doc(db, "admins", u.uid);
+          const adminSnap = await getDoc(adminDocRef);
+          if (!adminSnap.exists()) {
+            await setDoc(adminDocRef, {
+              email: u.email,
+              role: 'admin',
+              createdAt: serverTimestamp()
+            });
+            console.log("Admin bootstrapped successfully");
+          }
+        } catch (err) {
+          console.error("Error bootstrapping admin:", err);
+        }
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const handleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      console.error("Login Error:", err);
+    }
+  };
+
+  const handleUpdateStep = async (newStep: number) => {
+    if (!trackingData || !trackingId) return;
+    const cleanId = trackingId.trim().toUpperCase();
+    
+    try {
+      const docRef = doc(db, "tracking", cleanId);
+      await updateDoc(docRef, {
+        currentStep: newStep,
+        lastUpdated: serverTimestamp(),
+        "steps": trackingData.steps.map((s: any, idx: number) => ({
+          ...s,
+          status: (idx + 1) === newStep ? 'active' : (idx + 1) < newStep ? 'completed' : 'pending',
+          updatedAt: (idx + 1) === newStep ? new Date().toISOString() : s.updatedAt
+        }))
+      }).catch(e => handleFirestoreError(e, OperationType.UPDATE, `tracking/${cleanId}`));
+      
+      // Refresh local state
+      setTrackingData((prev: any) => ({
+        ...prev,
+        currentStep: newStep,
+        steps: prev.steps.map((s: any, idx: number) => ({
+          ...s,
+          status: (idx + 1) === newStep ? 'active' : (idx + 1) < newStep ? 'completed' : 'pending'
+        }))
+      }));
+    } catch (err) {
+      console.error("Update Error:", err);
+      alert("Error al actualizar el estado.");
+    }
+  };
+
   const handleCheckStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trackingId.trim()) return;
@@ -2005,6 +2074,17 @@ const ConsultationTracker = () => {
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Titular de la Solicitud</p>
                     <h4 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{trackingData.applicantName}</h4>
+                    {isAdmin && (
+                      <div className="mt-4 flex gap-2">
+                        <button 
+                          onClick={() => setIsAdminMode(!isAdminMode)}
+                          className="px-4 py-2 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest rounded-lg flex items-center gap-2"
+                        >
+                          {isAdminMode ? <ArrowRight size={14} className="rotate-180" /> : <Settings size={14} />}
+                          {isAdminMode ? 'Volver a Vista Cliente' : 'Gestionar Estado'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="text-left md:text-right">
                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Última Actualización</p>
@@ -2051,10 +2131,28 @@ const ConsultationTracker = () => {
                                   isActive 
                                   ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/50' 
                                   : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800/30'
-                                }`}>
+                                } relative overflow-hidden group`}>
                                   <h5 className={`font-black uppercase tracking-widest text-[11px] mb-2 ${isActive ? 'text-blue-600' : 'text-slate-400'}`}>Paso {stepNum}</h5>
                                   <p className={`font-bold text-lg leading-tight ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>{label}</p>
-                                  {isActive && (
+                                  
+                                  {isAdminMode && (
+                                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50 -mx-6 -mb-6 p-6">
+                                      <span className="text-[9px] font-black uppercase text-slate-500">Acción Admin</span>
+                                      <button 
+                                        onClick={() => handleUpdateStep(stepNum)}
+                                        disabled={isActive}
+                                        className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                                          isActive 
+                                          ? 'bg-green-100 text-green-600' 
+                                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                                        }`}
+                                      >
+                                        {isActive ? 'Paso Actual' : 'Mover Aquí'}
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {isActive && !isAdminMode && (
                                      <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mt-4">Actualización pendiente del asesor.</p>
                                   )}
                                 </div>
@@ -2193,7 +2291,21 @@ export default function App() {
           </div>
           
           <div className="pt-8 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">© 2026 Centro de Oportunidades Laborales · Intermediación Internacional Privada.</p>
+            <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">© 2026 Centro de Oportunidades Laborales · Intermediación Internacional Privada.
+              <button 
+                onClick={async () => {
+                  if (auth.currentUser) {
+                    await signOut(auth);
+                  } else {
+                    const provider = new GoogleAuthProvider();
+                    await signInWithPopup(auth, provider);
+                  }
+                }}
+                className="ml-4 text-slate-300 dark:text-slate-700 hover:text-blue-600 transition-colors uppercase tracking-widest text-[9px]"
+              >
+                {auth.currentUser ? 'Salir' : 'Gestión'}
+              </button>
+            </p>
             <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest text-center md:text-right">
                Comprometidos con el empleo formal y la <span className="text-indigo-600 dark:text-indigo-400">Migración Responsable</span>
             </div>
