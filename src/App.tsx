@@ -698,6 +698,7 @@ const CoreIdentity = () => (
             src={infoImg} 
             alt="Misión, Visión y Valores Corporativos" 
             className="w-full h-full object-cover"
+            loading="lazy"
             onError={(e) => {
               e.currentTarget.src = "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=1200";
             }}
