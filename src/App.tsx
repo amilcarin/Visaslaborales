@@ -334,18 +334,65 @@ const VoiceAssistant = () => {
 
 // --- Sub-Components ---
 
+const BrandLogo = ({ size = 48 }: { size?: number }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 100 100" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg"
+    className="drop-shadow-lg"
+  >
+    {/* Background Circle */}
+    <circle cx="50" cy="50" r="48" fill="#1E40AF" /> {/* Royal Blue */}
+    <circle cx="50" cy="50" r="48" stroke="#D4AF37" strokeWidth="4" /> {/* Metallic Gold */}
+    
+    {/* Stylized Globe Grids */}
+    <path 
+      d="M10 50C10 72.0914 27.9086 90 50 90C72.0914 90 90 72.0914 90 50C90 27.9086 72.0914 10 50 10" 
+      stroke="white" 
+      strokeOpacity="0.1" 
+      strokeWidth="1" 
+    />
+    <ellipse cx="50" cy="50" rx="20" ry="40" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
+    <line x1="10" y1="50" x2="90" y2="50" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
+    
+    {/* Human Silhouette (Reaching) */}
+    <path 
+      d="M50 75C53 75 55 72 55 68V55M50 75C47 75 45 72 45 68V55M50 55C50 50 55 45 65 35M50 55C50 50 45 45 35 35M50 55V45" 
+      stroke="white" 
+      strokeWidth="3" 
+      strokeLinecap="round" 
+    />
+    <circle cx="50" cy="40" r="4" fill="white" />
+    
+    {/* Star */}
+    <path 
+      d="M50 12L52 18H58L53 22L55 28L50 24L45 28L47 22L42 18H48L50 12Z" 
+      fill="#D4AF37" 
+      stroke="#D4AF37" 
+      strokeWidth="1"
+    />
+  </svg>
+);
+
 const Logo = () => (
   <div className="flex items-center gap-4 group cursor-pointer">
     <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center overflow-hidden shadow-xl shadow-blue-500/10">
-      <img src={logoImg} alt="C.O.L. Logo" className="w-full h-full object-contain" onError={(e) => {
-        // Fallback to Icon if image doesn't exist yet
+      {/* Try to use the uploaded logo, fallback to the professional SVG component */}
+      <img src={logoImg} alt="C.O.L. Logo" className="w-full h-full object-contain hidden" onError={(e) => {
         e.currentTarget.style.display = 'none';
-        e.currentTarget.parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>';
+        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+      }} onLoad={(e) => {
+        e.currentTarget.classList.remove('hidden');
       }} />
+      <div className="flex items-center justify-center w-full h-full">
+        <BrandLogo size={40} />
+      </div>
     </div>
     <div className="flex flex-col">
-      <span className="text-xl font-black text-slate-900 dark:text-white leading-none">CENTRO DE</span>
-      <span className="text-blue-600 font-bold text-sm tracking-widest uppercase">OPORTUNIDADES</span>
+      <span className="text-xl font-black text-slate-900 dark:text-white leading-none tracking-tight">CENTRO DE</span>
+      <span className="text-blue-600 font-bold text-xs tracking-widest uppercase">OPORTUNIDADES LABORALES</span>
     </div>
   </div>
 );
