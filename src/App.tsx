@@ -34,10 +34,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ALICE_KNOWLEDGE } from './knowledge.ts';
 import Markdown from 'react-markdown';
 
-import logoImg from './assets/logo.png';
-import infoImg from './assets/info.png';
-import oficinaImg from './assets/oficina.png';
-import recorridoVideo from './assets/recorrido.mp4';
+// Import assets from GitHub repository to ensure they load correctly
+const GITHUB_ASSETS_BASE = "https://raw.githubusercontent.com/amilcarin/Visaslaborales/main/src/assets";
+const logoImg = `${GITHUB_ASSETS_BASE}/logo.png`;
+const infoImg = `${GITHUB_ASSETS_BASE}/info.png`;
+const oficinaImg = `${GITHUB_ASSETS_BASE}/oficina.png`;
+const recorridoVideo = `${GITHUB_ASSETS_BASE}/recorrido.mp4`;
 
 import { jsPDF } from 'jspdf';
 import { GoogleGenAI } from "@google/genai";
@@ -341,58 +343,86 @@ const BrandLogo = ({ size = 48 }: { size?: number }) => (
     viewBox="0 0 100 100" 
     fill="none" 
     xmlns="http://www.w3.org/2000/svg"
-    className="drop-shadow-lg"
+    className="drop-shadow-sm"
   >
-    {/* Background Circle */}
-    <circle cx="50" cy="50" r="48" fill="#1E40AF" /> {/* Royal Blue */}
-    <circle cx="50" cy="50" r="48" stroke="#D4AF37" strokeWidth="4" /> {/* Metallic Gold */}
+    <defs>
+      <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#F59E0B" />
+        <stop offset="50%" stopColor="#FEF3C7" />
+        <stop offset="100%" stopColor="#D97706" />
+      </linearGradient>
+      <radialGradient id="blueDepth" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+        <stop offset="0%" stopColor="#2563EB" />
+        <stop offset="100%" stopColor="#1E3A8A" />
+      </radialGradient>
+    </defs>
     
-    {/* Stylized Globe Grids */}
+    {/* Background Circle with Depth */}
+    <circle cx="50" cy="50" r="48" fill="url(#blueDepth)" />
+    <circle cx="50" cy="50" r="46" stroke="url(#goldGradient)" strokeWidth="2.5" />
+    
+    {/* Stylized Globe */}
+    <g opacity="0.2">
+      <circle cx="50" cy="50" r="35" stroke="white" strokeWidth="0.5" />
+      <ellipse cx="50" cy="50" rx="12" ry="35" stroke="white" strokeWidth="0.5" />
+      <line x1="15" y1="50" x2="85" y2="50" stroke="white" strokeWidth="0.5" />
+      <path d="M20 30 Q50 20 80 30" fill="none" stroke="white" strokeWidth="0.5" />
+      <path d="M20 70 Q50 80 80 70" fill="none" stroke="white" strokeWidth="0.5" />
+    </g>
+    
+    {/* Human Silhouette Reaching High */}
     <path 
-      d="M10 50C10 72.0914 27.9086 90 50 90C72.0914 90 90 72.0914 90 50C90 27.9086 72.0914 10 50 10" 
-      stroke="white" 
-      strokeOpacity="0.1" 
-      strokeWidth="1" 
+      d="M50 78 C50 78 44 75 44 65 C44 55 50 50 50 50 C50 50 56 55 56 65 C56 75 50 78 50 78 Z" 
+      fill="white" 
+      opacity="0.9"
     />
-    <ellipse cx="50" cy="50" rx="20" ry="40" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
-    <line x1="10" y1="50" x2="90" y2="50" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
-    
-    {/* Human Silhouette (Reaching) */}
+    <circle cx="50" cy="42" r="5" fill="white" />
     <path 
-      d="M50 75C53 75 55 72 55 68V55M50 75C47 75 45 72 45 68V55M50 55C50 50 55 45 65 35M50 55C50 50 45 45 35 35M50 55V45" 
+      d="M50 52 L68 32M50 52 L32 32" 
       stroke="white" 
-      strokeWidth="3" 
+      strokeWidth="4" 
       strokeLinecap="round" 
     />
-    <circle cx="50" cy="40" r="4" fill="white" />
     
-    {/* Star */}
+    {/* The Star - Aspiration */}
     <path 
-      d="M50 12L52 18H58L53 22L55 28L50 24L45 28L47 22L42 18H48L50 12Z" 
-      fill="#D4AF37" 
-      stroke="#D4AF37" 
-      strokeWidth="1"
+      d="M50 18 L53 25 L60 25 L55 30 L57 37 L50 33 L43 37 L45 30 L40 25 L47 25 Z" 
+      fill="url(#goldGradient)" 
+      className="animate-pulse"
     />
+    
+    {/* Accent Glow */}
+    <circle cx="50" cy="28" r="8" fill="#FDE68A" opacity="0.1" />
   </svg>
 );
 
 const Logo = () => (
   <div className="flex items-center gap-4 group cursor-pointer">
-    <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center overflow-hidden shadow-xl shadow-blue-500/10">
-      {/* Try to use the uploaded logo, fallback to the professional SVG component */}
-      <img src={logoImg} alt="C.O.L. Logo" className="w-full h-full object-contain hidden" onError={(e) => {
-        e.currentTarget.style.display = 'none';
-        e.currentTarget.nextElementSibling?.classList.remove('hidden');
-      }} onLoad={(e) => {
-        e.currentTarget.classList.remove('hidden');
-      }} />
-      <div className="flex items-center justify-center w-full h-full">
-        <BrandLogo size={40} />
+    <div className="w-14 h-14 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/10 border border-slate-100 dark:border-slate-800 transition-transform group-hover:scale-105 duration-300 overflow-hidden">
+      <img 
+        src={logoImg} 
+        alt="C.O.L. Logo" 
+        className="w-full h-full object-contain p-2"
+        onError={(e) => {
+          // If image fails, fallback to the SVG BrandLogo
+          e.currentTarget.style.display = 'none';
+          const container = e.currentTarget.parentElement;
+          if (container) {
+            // Render the BrandLogo dynamically or just swap classes
+            container.innerHTML = ''; // Clear and we'll let React handle it if possible, 
+            // but for a quick fix in onError:
+            const svg = document.getElementById('brand-logo-fallback');
+            if (svg) svg.classList.remove('hidden');
+          }
+        }}
+      />
+      <div id="brand-logo-fallback" className="hidden">
+        <BrandLogo size={48} />
       </div>
     </div>
     <div className="flex flex-col">
-      <span className="text-xl font-black text-slate-900 dark:text-white leading-none tracking-tight">CENTRO DE</span>
-      <span className="text-blue-600 font-bold text-xs tracking-widest uppercase">OPORTUNIDADES LABORALES</span>
+      <span className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight tracking-tight">C.O.L.</span>
+      <span className="text-blue-600 font-bold text-[10px] tracking-widest uppercase opacity-80">Oportunidades Laborales</span>
     </div>
   </div>
 );
@@ -1898,6 +1928,7 @@ const OfficeTour = () => (
               src={oficinaImg} 
               className="w-full h-full object-cover" 
               alt="Nuestras oficinas"
+              loading="lazy"
               onError={(e) => {
                 e.currentTarget.src = "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1000";
               }}
