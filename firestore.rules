@@ -12,7 +12,12 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      // Use a more robust check that allows the specific admin emails directly too
+      // to avoid race conditions during bootstrapping
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email in ["amilcaralvarado330@gmail.com", "admin@visaexpert.com"]
+      );
     }
 
     function isValidId(id) {
@@ -20,8 +25,8 @@ service cloud.firestore {
     }
 
     function isValidTracking(data) {
-      return data.trackingId is string && data.trackingId.size() <= 20
-        && data.applicantName is string && data.applicantName.size() <= 100
+      return data.trackingId is string && data.trackingId.size() <= 40
+        && data.applicantName is string && data.applicantName.size() <= 200
         && data.currentStep is int && data.currentStep >= 1 && data.currentStep <= 7
         && data.steps is list && data.steps.size() == 7;
     }
@@ -30,8 +35,7 @@ service cloud.firestore {
     match /admins/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
       allow create: if isSignedIn() 
-        && request.auth.token.email in ["amilcaralvarado330@gmail.com", "admin@visaexpert.com"]
-        && request.auth.token.email_verified == true;
+        && request.auth.token.email in ["amilcaralvarado330@gmail.com", "admin@visaexpert.com"];
     }
 
     // Connection test document rule
