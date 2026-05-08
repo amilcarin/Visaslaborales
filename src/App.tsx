@@ -100,6 +100,17 @@ async function testConnection() {
 }
 testConnection();
 
+// --- Tracking Constants ---
+const TRACKING_STEPS = [
+  "Solicitud de Servicios",
+  "Recepción de Documentos",
+  "Análisis de Perfil",
+  "Llenado de Formularios",
+  "Programación de Cita",
+  "Certificación de la Visa",
+  "Cita de Entrega de Visa"
+];
+
 // --- WhatsApp & Automation Helpers ---
 const openWhatsApp = (msg: string) => {
   const phone = "50259686584"; // Guatemala prefix
@@ -1290,6 +1301,7 @@ const FormSection = React.forwardRef<HTMLDivElement>((props, ref) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successCode, setSuccessCode] = useState<string | null>(null);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -1311,20 +1323,41 @@ const FormSection = React.forwardRef<HTMLDivElement>((props, ref) => {
     setIsSubmitting(true);
 
     try {
-      // 1. Save to Database
+      // 1. Generate Tracking ID
+      const randomId = Math.floor(1000 + Math.random() * 9000);
+      const trackingCode = `COL-${randomId}`;
+
+      // 2. Save to Database (Prospect)
       await addDoc(collection(db, "prospects"), {
         ...formData,
+        trackingCode,
         createdAt: serverTimestamp()
       }).catch(e => handleFirestoreError(e, OperationType.CREATE, "prospects"));
 
-      // 2. Open WhatsApp
+      // 3. Initialize Tracking Entry
+      await setDoc(doc(db, "tracking", trackingCode), {
+        trackingId: trackingCode,
+        applicantName: formData.nombre,
+        currentStep: 1,
+        steps: TRACKING_STEPS.map((label, idx) => ({
+          label,
+          status: idx === 0 ? 'active' : 'pending',
+          updatedAt: new Date().toISOString()
+        })),
+        createdAt: serverTimestamp(),
+        lastUpdated: serverTimestamp()
+      }).catch(e => handleFirestoreError(e, OperationType.CREATE, `tracking/${trackingCode}`));
+
+      // 4. Show Success
+      setSuccessCode(trackingCode);
+
+      // 5. Open WhatsApp
       const msg = `HOLA CENTRO DE OPORTUNIDADES, ME INTERESA UNA ASESORÍA\n\n` +
                   `👤 Nombre: ${formData.nombre}\n` +
                   `📍 Localidad: ${formData.localidad}\n` +
                   `💼 Interés: ${formData.tipoTrabajo}\n` +
-                  `🎓 Educación: ${formData.educacion}\n` +
-                  `🛠 Experiencia: ${formData.experiencia}\n` +
-                  `📞 Teléfono: ${formData.telefono}\n\n` +
+                  `📞 Teléfono: ${formData.telefono}\n` +
+                  `🎟 Mi código es: ${trackingCode}\n\n` +
                   `Deseo agendar mi cita de Q1,500 para iniciar mi proceso.`;
       
       openWhatsApp(msg);
@@ -1409,6 +1442,32 @@ const FormSection = React.forwardRef<HTMLDivElement>((props, ref) => {
           className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] shadow-2xl shadow-blue-900/5 border border-slate-100 dark:border-slate-800"
         >
           <form className="space-y-6" onSubmit={handleSubmit}>
+            <AnimatePresence>
+              {successCode && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-8 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-[2rem] text-center space-y-4 mb-8"
+                >
+                  <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle2 size={24} />
+                  </div>
+                  <h4 className="text-green-800 dark:text-green-400 font-black uppercase tracking-tight">¡Solicitud Enviada!</h4>
+                  <p className="text-green-700 dark:text-green-500 text-xs font-bold leading-relaxed">
+                    Usa este código para seguir tu trámite en nuestra web:
+                  </p>
+                  <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-green-100 dark:border-green-800/50 font-black text-2xl tracking-widest text-slate-900 dark:text-white">
+                    {successCode}
+                  </div>
+                  <button 
+                    onClick={() => setSuccessCode(null)}
+                    className="text-green-600 font-black uppercase tracking-widest text-[9px] hover:underline"
+                  >
+                    Enviar otra consulta
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <div className="space-y-2">
               <label className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Nombre Completo</label>
               <input 
@@ -1847,167 +1906,193 @@ const VideoGallery = () => (
   </section>
 );
 
-const VisaStatusChecker = () => {
-  const [refNumber, setRefNumber] = useState('');
-  const [statusData, setStatusData] = useState<any>(null);
+const ConsultationTracker = () => {
+  const [trackingId, setTrackingId] = useState('');
+  const [trackingData, setTrackingData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleCheckStatus = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!refNumber.trim()) return;
+    if (!trackingId.trim()) return;
 
     setIsLoading(true);
     setError(null);
-    setStatusData(null);
+    setTrackingData(null);
+
+    const cleanId = trackingId.trim().toUpperCase();
 
     try {
-      const docRef = doc(db, "visaApplications", refNumber.trim());
-      const docSnap = await getDoc(docRef).catch(e => handleFirestoreError(e, OperationType.GET, `visaApplications/${refNumber.trim()}`));
+      const docRef = doc(db, "tracking", cleanId);
+      const docSnap = await getDoc(docRef).catch(e => handleFirestoreError(e, OperationType.GET, `tracking/${cleanId}`));
 
       if (docSnap && docSnap.exists()) {
-        const data = docSnap.data();
-        setStatusData(data);
+        setTrackingData(docSnap.data());
       } else {
-        setError("No se encontró ninguna solicitud con ese número de referencia. Por favor verifica e intenta de nuevo.");
+        // Fallback or legacy check
+        const legacyRef = doc(db, "visaApplications", cleanId);
+        const legacySnap = await getDoc(legacyRef).catch(e => handleFirestoreError(e, OperationType.GET, `visaApplications/${cleanId}`));
+        
+        if (legacySnap && legacySnap.exists()) {
+          const ld = legacySnap.data();
+          // Map legacy to new format
+          setTrackingData({
+            applicantName: ld.applicantName,
+            currentStep: ld.status === 'Approved' ? 6 : ld.status === 'Awaiting Documents' ? 2 : 3,
+            steps: TRACKING_STEPS.map((label, idx) => ({
+              label,
+              status: idx < 3 ? 'completed' : 'pending'
+            })),
+            lastUpdated: ld.updatedAt
+          });
+        } else {
+          setError("No se encontró ningún trámite con ese código. Por favor verifica e intenta de nuevo.");
+        }
       }
     } catch (err) {
-      console.error("Error checking status:", err);
-      setError("Ocurrió un error al consultar el sistema. Por favor intenta más tarde.");
+      console.error("Error checking tracking:", err);
+      setError("Error al consultar el sistema. Intenta de nuevo.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Approved': return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800';
-      case 'Denied': return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800';
-      case 'Processing': return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800';
-      case 'Awaiting Documents': return 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'Approved': return 'Aprobada';
-      case 'Denied': return 'Denegada';
-      case 'Processing': return 'En Proceso';
-      case 'Awaiting Documents': return 'Pendiente de Documentos';
-      default: return status;
-    }
-  };
-
   return (
-    <section id="consulta" className="py-24 bg-slate-50 dark:bg-slate-950">
-      <div className="max-w-4xl mx-auto px-4">
+    <section id="consulta" className="py-24 bg-slate-50 dark:bg-slate-950 scroll-mt-24">
+      <div className="max-w-5xl mx-auto px-4">
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
-          <div className="p-10 md:p-14 bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 text-white">
-            <div className="flex items-center gap-6 mb-10">
-              <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/20">
-                <Globe size={36} />
-              </div>
-              <div>
-                <h3 className="text-3xl md:text-4xl font-black tracking-tight uppercase tracking-tighter">Consulta tu Solicitud</h3>
-                <p className="text-slate-400 font-bold uppercase text-xs tracking-widest mt-1">Ingresa tu número de referencia.</p>
-              </div>
+          <div className="p-10 md:p-14 bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 text-white text-center">
+            <div className="inline-flex w-16 h-16 bg-blue-600 rounded-3xl items-center justify-center shadow-2xl shadow-blue-500/20 mb-8 mx-auto">
+              <Globe size={36} />
             </div>
+            <h3 className="text-3xl md:text-5xl font-black tracking-tighter uppercase mb-2">Seguimiento de Trámite</h3>
+            <p className="text-slate-400 font-bold uppercase text-xs tracking-widest max-w-md mx-auto mb-10">
+              Consulta el progreso de tu solicitud en tiempo real con tu código de seguimiento proporcionado.
+            </p>
 
-            <form onSubmit={handleCheckStatus} className="flex flex-col sm:flex-row gap-5">
+            <form onSubmit={handleCheckStatus} className="max-w-xl mx-auto flex flex-col sm:flex-row gap-4">
               <input 
                 type="text" 
-                value={refNumber}
-                onChange={(e) => setRefNumber(e.target.value)}
-                placeholder="Ej: VE-2026-XXXX"
-                className="flex-1 bg-white/10 border border-white/20 rounded-2xl px-8 py-5 outline-none focus:ring-4 focus:ring-blue-500/30 transition-all font-black placeholder:text-slate-500 text-white text-lg"
+                value={trackingId}
+                onChange={(e) => setTrackingId(e.target.value)}
+                placeholder="Ej: COL-XXXX"
+                className="flex-1 bg-white/10 border border-white/20 rounded-2xl px-8 py-5 outline-none focus:ring-4 focus:ring-blue-500/30 transition-all font-black placeholder:text-slate-500 text-white text-lg text-center sm:text-left"
                 required
               />
               <button 
                 type="submit"
                 disabled={isLoading}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-12 py-5 rounded-2xl font-black transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap shadow-2xl shadow-blue-500/30 text-lg uppercase tracking-widest"
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-10 py-5 rounded-2xl font-black transition-all active:scale-95 flex items-center justify-center gap-3 shadow-2xl shadow-blue-500/30 text-base uppercase tracking-widest"
               >
                 {isLoading ? (
-                  <span className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                  <Loader2 className="animate-spin" size={24} />
                 ) : (
-                  <>CONSULTAR <ArrowRight size={24} /></>
+                  <>RASTREAR <ArrowRight size={24} /></>
                 )}
               </button>
             </form>
           </div>
 
           <AnimatePresence mode="wait">
-            {statusData && (
+            {trackingData && (
               <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="p-10 md:p-14 border-t border-slate-100 dark:border-slate-800"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="p-8 md:p-16 border-t border-slate-100 dark:border-slate-800"
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-                  <div className="space-y-8">
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Candidato Oficial</p>
-                      <h4 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{statusData.applicantName}</h4>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-3">Estado del Proceso</p>
-                      <span className={`inline-flex items-center gap-3 px-6 py-3 rounded-2xl border text-base font-black tracking-wide ${getStatusColor(statusData.status)}`}>
-                        <div className={`w-3 h-3 rounded-full animate-pulse ${statusData.status === 'Approved' ? 'bg-green-500' : 'bg-blue-500'}`} />
-                        {getStatusLabel(statusData.status)}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Última Actualización</p>
-                      <p className="font-black text-slate-700 dark:text-slate-300 uppercase italic">{new Date(statusData.updatedAt).toLocaleString('es-GT')}</p>
-                    </div>
+                <div className="flex flex-col md:flex-row justify-between items-start mb-16 gap-8 bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Titular de la Solicitud</p>
+                    <h4 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{trackingData.applicantName}</h4>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 space-y-6">
-                    <h5 className="font-black text-slate-900 dark:text-white uppercase tracking-widest text-sm flex items-center gap-3">
-                       <Award size={24} className="text-blue-600" /> Próximos Pasos
-                    </h5>
-                    <p className="text-base text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                      {statusData.status === 'Approved' 
-                        ? '¡Felicidades! Tu visa ha sido aprobada. Nuestro equipo se pondrá en contacto contigo para la entrega de documentos.' 
-                        : statusData.status === 'Processing'
-                        ? 'Tu solicitud está siendo analizada minuciosamente por nuestro equipo experto para asegurar el éxito.'
-                        : statusData.status === 'Awaiting Documents'
-                        ? 'Necesitamos que nos envíes los documentos faltantes a la brevedad posible para continuar.'
-                        : 'Lamentamos el inconveniente. Te invitamos a agendar una cita con un asesor para analizar los motivos y re-aplicar.'
-                      }
+                  <div className="text-left md:text-right">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Última Actualización</p>
+                    <p className="font-black text-slate-700 dark:text-slate-300 uppercase italic">
+                      {trackingData.lastUpdated ? new Date(trackingData.lastUpdated?.seconds ? trackingData.lastUpdated.seconds * 1000 : trackingData.lastUpdated).toLocaleString('es-GT') : '--'}
                     </p>
-                    <button 
-                      onClick={() => openWhatsApp(`Hola, mi referencia es ${refNumber}. Consulté mi estado y es: ${statusData.status}. ¿Qué debo hacer ahora?`)}
-                      className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
-                    >
-                      Hablar con un asesor <MessageCircle size={20} />
-                    </button>
                   </div>
+                </div>
+
+                <div className="relative">
+                  {/* Progress Line */}
+                  <div className="absolute left-[15px] md:left-1/2 top-0 bottom-0 w-[4px] bg-slate-100 dark:bg-slate-800 md:-translate-x-1/2 rounded-full" />
+                  
+                  <div className="space-y-12 md:space-y-24 relative">
+                    {TRACKING_STEPS.map((label, index) => {
+                      const stepNum = index + 1;
+                      const isCompleted = stepNum < trackingData.currentStep;
+                      const isActive = stepNum === trackingData.currentStep;
+                      
+                      return (
+                        <div key={index} className={`flex flex-col md:flex-row items-center gap-8 ${index % 2 === 0 ? 'md:flex-row-reverse' : ''}`}>
+                          <div className="flex-1 w-full md:text-right hidden md:block">
+                            {index % 2 !== 0 && (
+                               <div className="bg-slate-50 dark:bg-slate-800/30 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800/50">
+                                 <h5 className={`font-black uppercase tracking-widest text-[11px] mb-2 ${isActive ? 'text-blue-600' : 'text-slate-400'}`}>Paso {stepNum}</h5>
+                                 <p className={`font-bold text-lg leading-tight ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>{label}</p>
+                               </div>
+                            )}
+                          </div>
+
+                          <div className="relative z-10 flex items-center justify-center self-start md:self-center ml-[3px] md:ml-0">
+                            <div className={`w-8 h-8 rounded-full border-4 flex items-center justify-center transition-all duration-500 ${
+                              isCompleted ? 'bg-green-500 border-green-200 text-white' : 
+                              isActive ? 'bg-blue-600 border-blue-200 text-white animate-pulse shadow-lg shadow-blue-500/50' : 
+                              'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-300'
+                            }`}>
+                              {isCompleted ? <CheckCircle2 size={16} /> : <span className="text-[10px] font-black">{stepNum}</span>}
+                            </div>
+                          </div>
+
+                          <div className="flex-1 w-full text-left md:hidden lg:block">
+                             {(index % 2 === 0 || window.innerWidth < 768) && (
+                                <div className={`p-6 rounded-[2rem] border transition-all ${
+                                  isActive 
+                                  ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/50' 
+                                  : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800/30'
+                                }`}>
+                                  <h5 className={`font-black uppercase tracking-widest text-[11px] mb-2 ${isActive ? 'text-blue-600' : 'text-slate-400'}`}>Paso {stepNum}</h5>
+                                  <p className={`font-bold text-lg leading-tight ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>{label}</p>
+                                  {isActive && (
+                                     <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mt-4">Actualización pendiente del asesor.</p>
+                                  )}
+                                </div>
+                             )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="mt-20 p-8 bg-blue-600 rounded-[2.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
+                   <div className="space-y-2">
+                     <h5 className="text-2xl font-black uppercase tracking-tight">¿Alguna duda sobre este paso?</h5>
+                     <p className="text-blue-100 font-medium">Habla directamente con el analista asignado a tu caso.</p>
+                   </div>
+                   <button 
+                     onClick={() => openWhatsApp(`Hola, mi código de seguimiento es ${trackingId}. Estoy en el paso "${TRACKING_STEPS[trackingData.currentStep - 1]}". ¿Me pueden dar más información?`)}
+                     className="bg-white text-blue-600 px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl"
+                   >
+                     HABLAR CON ASESOR
+                   </button>
                 </div>
               </motion.div>
             )}
 
-            {!statusData && null}
-
             {error && (
               <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="p-14 text-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="p-16 text-center"
               >
-                <div className="inline-flex flex-col items-center gap-6 text-slate-500">
-                  <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center">
+                <div className="inline-flex flex-col items-center gap-6">
+                  <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-2xl flex items-center justify-center">
                     <X size={32} />
                   </div>
-                  <p className="font-black text-lg max-w-sm tracking-tight">{error}</p>
-                  <button 
-                     onClick={() => openWhatsApp("Hola, perdí mi número de referencia de mi solicitud de visa. ¿Me pueden ayudar?")}
-                     className="text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest text-sm hover:underline"
-                  >
-                    ¿Olvidaste tu número? Contáctanos
-                  </button>
+                  <p className="font-bold text-slate-500 max-w-sm leading-relaxed">{error}</p>
+                  <button onClick={() => openWhatsApp("Hola, ¿me pueden ayudar con mi código de seguimiento?")} className="text-blue-600 font-black uppercase tracking-widest text-[10px] hover:underline">Solicitar Ayuda</button>
                 </div>
               </motion.div>
             )}
@@ -2017,6 +2102,7 @@ const VisaStatusChecker = () => {
     </section>
   );
 };
+
 
 export default function App() {
   const formRef = useRef<HTMLDivElement>(null);
@@ -2068,7 +2154,7 @@ export default function App() {
         <OfficeTour />
         <LocationSection />
         <MythsSection />
-        <VisaStatusChecker />
+        <ConsultationTracker />
         <VideoGallery />
         <Testimonials />
         <Downloads />
