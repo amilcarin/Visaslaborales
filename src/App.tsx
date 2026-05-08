@@ -18,9 +18,6 @@ import {
   Sun,
   Moon,
   Menu,
-  Bell,
-  BellOff,
-  Info,
   Mic,
   Volume2,
   VolumeX,
@@ -107,157 +104,6 @@ testConnection();
 const openWhatsApp = (msg: string) => {
   const phone = "50259686584"; // Guatemala prefix
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-};
-
-// --- Push Notifications Helper ---
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/\-/g, '+')
-    .replace(/_/g, '/');
-
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
-const PushNotificationManager = () => {
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [subscription, setSubscription] = useState<PushSubscription | null>(null);
-  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      navigator.serviceWorker.ready.then(reg => {
-        setRegistration(reg);
-        reg.pushManager.getSubscription().then(sub => {
-          if (sub) {
-            setSubscription(sub);
-            setIsSubscribed(true);
-          }
-        });
-      });
-    }
-  }, []);
-
-  const subscribeToPush = async () => {
-    if (!registration) return;
-    setError(null);
-
-    // Check if notifications are supported
-    if (!("Notification" in window)) {
-      setError("Este navegador no soporta notificaciones de escritorio.");
-      return;
-    }
-
-    try {
-      // 1. Check current permission first
-      if (Notification.permission === 'denied') {
-        setError("Las notificaciones están bloqueadas. Haz clic en el icono del candado en la barra de direcciones para permitirlas.");
-        return;
-      }
-
-      // 2. Request Permission explicitly
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        console.error("Permission not granted for notifications");
-        setError("Permiso denegado. Para recibir alertas, debes permitir las notificaciones en la configuración de tu navegador.");
-        return;
-      }
-
-      const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-      if (!publicVapidKey) {
-        console.error("VAPID public key not found");
-        return;
-      }
-
-      const sub = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-      });
-
-      // Send subscription to server
-      await fetch('/api/notifications/subscribe', {
-        method: 'POST',
-        body: JSON.stringify(sub),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      setSubscription(sub);
-      setIsSubscribed(true);
-      
-      // Save subscription to Firestore for persistence
-      try {
-        await addDoc(collection(db, 'push_subscriptions'), {
-          subscription: JSON.parse(JSON.stringify(sub)),
-          createdAt: serverTimestamp(),
-          ua: navigator.userAgent
-        });
-      } catch (e) {
-        console.error("Error saving to Firestore:", e);
-      }
-
-    } catch (error) {
-      console.error("Error subscribing to push:", error);
-    }
-  };
-
-  const unsubscribeFromPush = async () => {
-    if (subscription) {
-      await subscription.unsubscribe();
-      setSubscription(null);
-      setIsSubscribed(false);
-    }
-  };
-
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    return null;
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-[2rem] border border-blue-100 dark:border-blue-800/30 flex items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className={`p-3 rounded-2xl ${isSubscribed ? 'bg-green-100 dark:bg-green-900/30 text-green-600' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600'}`}>
-            {isSubscribed ? <Bell size={24} /> : <BellOff size={24} />}
-          </div>
-          <div>
-            <h4 className="font-black text-slate-900 dark:text-white uppercase tracking-tight">Notificaciones Web</h4>
-            <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">
-              {isSubscribed ? 'Estás suscrito a las actualizaciones.' : 'Recibe alertas sobre el estado de tu trámite.'}
-            </p>
-          </div>
-        </div>
-        <button 
-          onClick={isSubscribed ? unsubscribeFromPush : subscribeToPush}
-          className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
-            isSubscribed 
-            ? 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600' 
-            : 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700'
-          }`}
-        >
-          {isSubscribed ? 'Desactivar' : 'Activar'}
-        </button>
-      </div>
-      {error && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-bold rounded-2xl border border-red-100 dark:border-red-900/30 flex items-center gap-3"
-        >
-          <Info size={16} />
-          {error}
-        </motion.div>
-      )}
-    </div>
-  );
 };
 
 // --- Voice Assistant (Call Agent) Component ---
@@ -2142,11 +1988,7 @@ const VisaStatusChecker = () => {
               </motion.div>
             )}
 
-            {!statusData && (
-              <div className="p-10 md:p-14 border-t border-slate-100 dark:border-slate-800">
-                <PushNotificationManager />
-              </div>
-            )}
+            {!statusData && null}
 
             {error && (
               <motion.div 
