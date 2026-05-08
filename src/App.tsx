@@ -1290,7 +1290,7 @@ const FormSection = React.forwardRef<HTMLDivElement>((props, ref) => {
     nombre: '',
     localidad: '',
     tipoTrabajo: '',
-    educacion: 'Primaria / Diversificado',
+    educacion: 'Sin estudios',
     experiencia: 'Sin experiencia previa',
     telefono: ''
   });
@@ -1364,7 +1364,7 @@ const FormSection = React.forwardRef<HTMLDivElement>((props, ref) => {
         nombre: '',
         localidad: '',
         tipoTrabajo: '',
-        educacion: 'Primaria / Diversificado',
+        educacion: 'Sin estudios',
         experiencia: 'Sin experiencia previa',
         telefono: ''
       });
@@ -1527,6 +1527,7 @@ const FormSection = React.forwardRef<HTMLDivElement>((props, ref) => {
                   value={formData.educacion}
                   onChange={e => setFormData({...formData, educacion: e.target.value})}
                 >
+                  <option value="Sin estudios">SIN ESTUDIOS</option>
                   <option>Primaria / Diversificado</option>
                   <option>Técnico Profesional</option>
                   <option>Universitario</option>
