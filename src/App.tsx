@@ -34,6 +34,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ALICE_KNOWLEDGE } from './knowledge.ts';
 import Markdown from 'react-markdown';
 
+import logoImg from './assets/logo.png';
+import infoImg from './assets/info.png';
+import oficinaImg from './assets/oficina.png';
+import recorridoVideo from './assets/recorrido.mp4';
+
 import { jsPDF } from 'jspdf';
 import { GoogleGenAI } from "@google/genai";
 import { 
@@ -332,7 +337,7 @@ const VoiceAssistant = () => {
 const Logo = () => (
   <div className="flex items-center gap-4 group cursor-pointer">
     <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center overflow-hidden shadow-xl shadow-blue-500/10">
-      <img src="/logo.png" alt="C.O.L. Logo" className="w-full h-full object-contain" onError={(e) => {
+      <img src={logoImg} alt="C.O.L. Logo" className="w-full h-full object-contain" onError={(e) => {
         // Fallback to Icon if image doesn't exist yet
         e.currentTarget.style.display = 'none';
         e.currentTarget.parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>';
@@ -690,7 +695,7 @@ const CoreIdentity = () => (
           className="relative rounded-2xl md:rounded-[3rem] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 aspect-[16/9] flex items-center justify-center"
         >
           <img 
-            src="/info.png" 
+            src={infoImg} 
             alt="Misión, Visión y Valores Corporativos" 
             className="w-full h-full object-cover"
             onError={(e) => {
@@ -1586,7 +1591,7 @@ const Downloads = () => {
     
     // Add Logo or Fallback
     try {
-      doc.addImage("/logo.png", "PNG", 20, 10, 25, 25);
+      doc.addImage(logoImg, "PNG", 20, 10, 25, 25);
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(22);
       doc.setFont("helvetica", "bold");
@@ -1842,7 +1847,7 @@ const OfficeTour = () => (
           <div className="absolute -inset-4 bg-blue-600/10 rounded-[2rem] blur-2xl group-hover:bg-blue-600/20 transition-all"></div>
           <div className="relative aspect-video rounded-[3rem] overflow-hidden shadow-2xl bg-slate-200 dark:bg-slate-800 border-4 border-white dark:border-slate-800">
             <img 
-              src="/oficina.png" 
+              src={oficinaImg} 
               className="w-full h-full object-cover" 
               alt="Nuestras oficinas"
               onError={(e) => {
@@ -1896,7 +1901,7 @@ const VideoGallery = () => (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {[
           { title: "Mitos sobre la visa B1/B2", desc: "Lo que el cónsul realmente busca.", video: null },
-          { title: "Recorrido por nuestras oficinas", desc: "Conoce dónde preparamos tu éxito.", video: "/recorrido.mp4" }
+          { title: "Recorrido por nuestras oficinas", desc: "Conoce dónde preparamos tu éxito.", video: recorridoVideo }
         ].map((v, i) => (
           <div key={i} className="aspect-video bg-slate-800 dark:bg-slate-900 rounded-[3rem] overflow-hidden shadow-2xl relative group cursor-pointer border border-white/5">
              {v.video ? (
@@ -1905,7 +1910,7 @@ const VideoGallery = () => (
                   autoPlay={false} 
                   controls 
                   className="w-full h-full object-cover"
-                  poster="/oficina.png" 
+                  poster={oficinaImg} 
                 />
              ) : (
                 <>
