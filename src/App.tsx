@@ -34,12 +34,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ALICE_KNOWLEDGE } from './knowledge.ts';
 import Markdown from 'react-markdown';
 
-// Import assets from GitHub repository to ensure they load correctly
-const GITHUB_ASSETS_BASE = "https://raw.githubusercontent.com/amilcarin/Visaslaborales/main/src/assets";
-const logoImg = `${GITHUB_ASSETS_BASE}/logo.png`;
-const infoImg = `${GITHUB_ASSETS_BASE}/info.png`;
-const oficinaImg = `${GITHUB_ASSETS_BASE}/oficina.png`;
-const recorridoVideo = `${GITHUB_ASSETS_BASE}/recorrido.mp4`;
+// Assets are no longer needed as we're removing image/video sections
 
 import { jsPDF } from 'jspdf';
 import { GoogleGenAI } from "@google/genai";
@@ -398,27 +393,8 @@ const BrandLogo = ({ size = 48 }: { size?: number }) => (
 
 const Logo = () => (
   <div className="flex items-center gap-4 group cursor-pointer">
-    <div className="w-14 h-14 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/10 border border-slate-100 dark:border-slate-800 transition-transform group-hover:scale-105 duration-300 overflow-hidden">
-      <img 
-        src={logoImg} 
-        alt="C.O.L. Logo" 
-        className="w-full h-full object-contain p-2"
-        onError={(e) => {
-          // If image fails, fallback to the SVG BrandLogo
-          e.currentTarget.style.display = 'none';
-          const container = e.currentTarget.parentElement;
-          if (container) {
-            // Render the BrandLogo dynamically or just swap classes
-            container.innerHTML = ''; // Clear and we'll let React handle it if possible, 
-            // but for a quick fix in onError:
-            const svg = document.getElementById('brand-logo-fallback');
-            if (svg) svg.classList.remove('hidden');
-          }
-        }}
-      />
-      <div id="brand-logo-fallback" className="hidden">
-        <BrandLogo size={48} />
-      </div>
+    <div className="w-14 h-14 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/10 border border-slate-100 dark:border-slate-800 transition-transform group-hover:scale-105 duration-300">
+      <BrandLogo size={48} />
     </div>
     <div className="flex flex-col">
       <span className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight tracking-tight">C.O.L.</span>
@@ -619,177 +595,90 @@ const Hero = () => (
     <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-gradient-to-br from-blue-600/10 to-indigo-600/5 rounded-full blur-[120px] -mr-[300px] -mt-[300px] dark:opacity-20" />
     <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-[100px] -ml-[200px] -mb-[200px] dark:opacity-20" />
     
-    <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-24 relative z-10">
-      <div className="flex-1 space-y-10 text-center lg:text-left">
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex flex-wrap gap-3"
-        >
-          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white dark:bg-slate-900 shadow-xl shadow-blue-900/5 rounded-2xl border border-blue-50 dark:border-slate-800">
-            <div className="p-1 px-2 bg-blue-600 text-white text-[10px] font-black rounded-lg">PRO</div>
-            <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Intermediación Laboral Internacional</span>
-          </div>
-          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-blue-50 dark:bg-blue-900/20 shadow-xl shadow-blue-900/5 rounded-2xl border border-blue-100 dark:border-blue-800/30">
-            <div className="p-1 px-2 bg-indigo-600 text-white text-[10px] font-black rounded-lg">OFICIAL</div>
-            <span className="text-[11px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest flex items-center gap-2">
-              <CheckCircle2 size={12} />
-              COLABORAMOS CON PROGRAMAS DE EMPLEO
-            </span>
-          </div>
-        </motion.div>
-        
-        <motion.div
-           initial={{ opacity: 0, y: 30 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ duration: 0.8, ease: "circOut" }}
-           className="space-y-4"
-        >
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 dark:text-white leading-[0.85] tracking-tighter">
-            CENTRO DE <br />
-            <span className="text-blue-600 relative">
-              OPORTUNIDADES.
-              <span className="absolute -bottom-2 left-0 w-full h-2 md:h-3 bg-blue-100 dark:bg-blue-900/30 -z-10" />
-            </span>
-          </h1>
-          <p className="text-xl md:text-2xl text-slate-500 dark:text-slate-400 font-bold max-w-xl leading-tight md:leading-snug">
-            Intermediación Laboral USA & Canadá · Procesos Transparentes · Oportunidades Verificadas.
-          </p>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="p-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl rounded-[2.5rem] border border-white dark:border-slate-800 max-w-xl shadow-2xl shadow-blue-900/5 space-y-4"
-        >
-           <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                <MapPin size={24} />
-              </div>
-              <div>
-                <h4 className="font-black text-lg text-slate-900 dark:text-white uppercase tracking-tight">Ubicación Estratégica</h4>
-                <p className="text-slate-500 dark:text-slate-400 font-medium">Blvd. Austriaco, Zona 16. <br/>Frente a la Embajada de EE. UU.</p>
-              </div>
-           </div>
-           <div className="h-[1px] bg-slate-100 dark:bg-slate-800 w-full" />
-           <div className="flex items-center justify-between gap-4">
-              <p className="font-black text-2xl text-slate-900 dark:text-white tracking-tighter">CITA ÚNICA: Q1,500</p>
-              <div className="px-3 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-black rounded-lg">98% ÉXITO</div>
-           </div>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="flex flex-col sm:flex-row gap-5"
-        >
-          <button 
-            onClick={() => document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' })}
-            className="group relative bg-slate-900 dark:bg-blue-600 text-white px-12 py-6 rounded-[2rem] font-black text-xl flex items-center justify-center gap-4 shadow-2xl hover:bg-blue-600 dark:hover:bg-blue-700 transition-all active:scale-95"
-          >
-            INICIAR AHORA <ArrowRight size={28} className="group-hover:translate-x-2 transition-transform" />
-          </button>
-          <button 
-            onClick={() => openWhatsApp("Hola, me gustaría agendar mi cita.")}
-            className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-12 py-6 rounded-[2rem] font-black text-xl flex items-center justify-center gap-4 hover:border-blue-600 dark:hover:border-blue-500 transition-all active:scale-95"
-          >
-            SABER MÁS <Globe size={28} />
-          </button>
-          <SocialShare />
-        </motion.div>
-      </div>
-
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.8, rotate: -3 }}
-        animate={{ opacity: 1, scale: 1, rotate: 0 }}
-        transition={{ delay: 0.4, type: "spring", stiffness: 100 }}
-        className="flex-1 relative hidden lg:block"
-      >
-        <div className="relative">
-          <div className="absolute -inset-4 bg-gradient-to-br from-blue-600 to-indigo-800 rounded-[5rem] blur-2xl opacity-20 animate-pulse" />
-          <div className="relative bg-white dark:bg-slate-800 p-4 rounded-[5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden group">
-            <div className="aspect-[4/5] rounded-[4rem] overflow-hidden relative">
-              <img 
-                src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200" 
-                alt="Centro de Oportunidades Laborales - Oficinas" 
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                referrerPolicy="no-referrer"
-              />
-
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent" />
-              
-              {/* Floating success stats */}
-              <div className="absolute bottom-10 left-10 right-10 space-y-6">
-                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-xl">
-                       <Award size={32} />
-                    </div>
-                    <div>
-                       <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1">Acreditación</p>
-                       <h3 className="text-2xl font-black text-white leading-tight">Agencia Certificada</h3>
-                    </div>
-                 </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/10 backdrop-blur-md p-4 rounded-3xl border border-white/20">
-                       <p className="text-white font-black text-xl">+500</p>
-                       <p className="text-white/60 text-[10px] font-bold uppercase">Aprobaciones</p>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-md p-4 rounded-3xl border border-white/20">
-                       <p className="text-white font-black text-xl">98%</p>
-                       <p className="text-white/60 text-[10px] font-bold uppercase">Eficacia</p>
-                    </div>
-                 </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Decorative floating elements */}
+    <div className="max-w-7xl mx-auto flex flex-col items-center text-center relative z-10 w-full">
+        <div className="space-y-10">
           <motion.div 
-             animate={{ y: [0, -10, 0] }}
-             transition={{ duration: 4, repeat: Infinity }}
-             className="absolute -top-10 -right-10 bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 flex items-center gap-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex justify-center flex-wrap gap-3"
           >
-             <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-xl flex items-center justify-center">
-                <CheckCircle2 size={24} />
-             </div>
-             <p className="font-black text-slate-800 dark:text-white tracking-tight">Visa Lista</p>
+            <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white dark:bg-slate-900 shadow-xl shadow-blue-900/5 rounded-2xl border border-blue-50 dark:border-slate-800">
+              <div className="p-1 px-2 bg-blue-600 text-white text-[10px] font-black rounded-lg">PRO</div>
+              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Intermediación Laboral Internacional</span>
+            </div>
+            <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-blue-50 dark:bg-blue-900/20 shadow-xl shadow-blue-900/5 rounded-2xl border border-blue-100 dark:border-blue-800/30">
+              <div className="p-1 px-2 bg-indigo-600 text-white text-[10px] font-black rounded-lg">OFICIAL</div>
+              <span className="text-[11px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest flex items-center gap-2">
+                <CheckCircle2 size={12} />
+                COLABORAMOS CON PROGRAMAS DE EMPLEO
+              </span>
+            </div>
           </motion.div>
-        </div>
-      </motion.div>
-    </div>
-  </section>
-);
-
-const CoreIdentity = () => (
-  <section className="py-12 md:py-24 bg-white dark:bg-slate-900 border-y border-slate-100 dark:border-slate-800">
-    <div className="max-w-7xl mx-auto px-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="relative rounded-2xl md:rounded-[3rem] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 aspect-[16/9] flex items-center justify-center"
-        >
-          <img 
-            src={infoImg} 
-            alt="Misión, Visión y Valores Corporativos" 
-            className="w-full h-full object-cover"
-            loading="lazy"
-            onError={(e) => {
-              e.currentTarget.src = "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=1200";
-            }}
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
-          <div className="absolute bottom-12 left-12 right-12 text-white">
-            <h3 className="text-3xl font-black uppercase tracking-tighter">Nuestros Valores y Misión</h3>
-            <p className="text-lg opacity-90 max-w-xl">Conectamos talento con oportunidades reales bajo principios de integridad y transparencia.</p>
+          
+          <motion.div
+             initial={{ opacity: 0, y: 30 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.8, ease: "circOut" }}
+             className="space-y-4"
+          >
+            <h1 className="text-5xl md:text-8xl lg:text-9xl font-black text-slate-900 dark:text-white leading-[0.85] tracking-tighter">
+              CENTRO DE <br />
+              <span className="text-blue-600 relative">
+                OPORTUNIDADES.
+                <span className="absolute -bottom-2 left-0 w-full h-2 md:h-3 bg-blue-100 dark:bg-blue-900/30 -z-10" />
+              </span>
+            </h1>
+            <p className="text-xl md:text-2xl text-slate-500 dark:text-slate-400 font-bold max-w-2xl mx-auto leading-tight md:leading-snug">
+              Intermediación Laboral USA & Canadá · Procesos Transparentes · Oportunidades Verificadas.
+            </p>
+          </motion.div>
+  
+          <div className="flex flex-col items-center gap-8">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="p-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl rounded-[2.5rem] border border-white dark:border-slate-800 w-full max-w-xl shadow-2xl shadow-blue-900/5 space-y-4"
+            >
+               <div className="flex items-start gap-4 text-left">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                    <MapPin size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-lg text-slate-900 dark:text-white uppercase tracking-tight">Ubicación Estratégica</h4>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">Blvd. Austriaco, Zona 16. <br/>Frente a la Embajada de EE. UU.</p>
+                  </div>
+               </div>
+               <div className="h-[1px] bg-slate-100 dark:bg-slate-800 w-full" />
+               <div className="flex items-center justify-between gap-4">
+                  <p className="font-black text-2xl text-slate-900 dark:text-white tracking-tighter">CITA ÚNICA: Q1,500</p>
+                  <div className="px-3 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-black rounded-lg">98% ÉXITO</div>
+               </div>
+            </motion.div>
+  
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="flex flex-col sm:flex-row gap-5"
+            >
+              <button 
+                onClick={() => document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' })}
+                className="group relative bg-slate-900 dark:bg-blue-600 text-white px-12 py-6 rounded-[2rem] font-black text-xl flex items-center justify-center gap-4 shadow-2xl hover:bg-blue-600 dark:hover:bg-blue-700 transition-all active:scale-95"
+              >
+                INICIAR AHORA <ArrowRight size={28} className="group-hover:translate-x-2 transition-transform" />
+              </button>
+              <button 
+                onClick={() => openWhatsApp("Hola, me gustaría agendar mi cita.")}
+                className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-12 py-6 rounded-[2rem] font-black text-xl flex items-center justify-center gap-4 hover:border-blue-600 dark:hover:border-blue-500 transition-all active:scale-95"
+              >
+                SABER MÁS <Globe size={28} />
+              </button>
+              <SocialShare />
+            </motion.div>
           </div>
-          <div className="absolute inset-0 pointer-events-none border-[4px] md:border-[12px] border-white dark:border-slate-900 rounded-2xl md:rounded-[3rem]" />
-        </motion.div>
-
-    </div>
+        </div>
+      </div>
   </section>
 );
 
@@ -1167,8 +1056,8 @@ const BotAlice = () => {
             {/* Header Bot */}
             <div className="p-6 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl border-2 border-white/20 overflow-hidden bg-white/10 p-0.5">
-                   <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200" alt="Alice Avatar" className="w-full h-full object-cover rounded-xl" />
+                <div className="w-12 h-12 rounded-2xl border-2 border-white/20 overflow-hidden bg-white/10 flex items-center justify-center">
+                   <UserCheck size={24} />
                 </div>
                 <div>
                   <h4 className="font-bold text-lg leading-tight">{status === 'ai' ? 'Alice AI' : 'Soporte de Asesor'}</h4>
@@ -1667,30 +1556,18 @@ const Downloads = () => {
     doc.setFillColor(30, 41, 59); // slate-900
     doc.rect(0, 0, pageWidth, 45, 'F');
     
-    // Add Logo or Fallback
-    try {
-      doc.addImage(logoImg, "PNG", 20, 10, 25, 25);
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(22);
-      doc.setFont("helvetica", "bold");
-      doc.text("C.O.L.", 50, 22);
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      doc.text("Guatemala", 50, 29);
-    } catch (e) {
-      // Fallback
-      doc.setFillColor(59, 130, 246);
-      doc.circle(28, 22, 12, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("VE", 28, 24, { align: "center" });
-      doc.setFontSize(22);
-      doc.text("C.O.L.", 45, 22);
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      doc.text("Guatemala", 45, 29);
-    }
+    // Add Logo (SVG-style fallback for PDF)
+    doc.setFillColor(59, 130, 246);
+    doc.circle(28, 22, 12, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("VE", 28, 24, { align: "center" });
+    doc.setFontSize(22);
+    doc.text("C.O.L.", 45, 22);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Guatemala", 45, 29);
     
     // Badge "98% Éxito"
     doc.setFillColor(34, 197, 94); // green-500
@@ -1911,98 +1788,6 @@ const MythsSection = () => (
               <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed">{item.truth}</p>
             </div>
           </motion.div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
-const OfficeTour = () => (
-  <section className="py-24 bg-slate-50 dark:bg-slate-950 overflow-hidden">
-    <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center gap-16">
-      <div className="flex-1 order-2 md:order-1">
-        <div className="relative group">
-          <div className="absolute -inset-4 bg-blue-600/10 rounded-[2rem] blur-2xl group-hover:bg-blue-600/20 transition-all"></div>
-          <div className="relative aspect-video rounded-[3rem] overflow-hidden shadow-2xl bg-slate-200 dark:bg-slate-800 border-4 border-white dark:border-slate-800">
-            <img 
-              src={oficinaImg} 
-              className="w-full h-full object-cover" 
-              alt="Nuestras oficinas"
-              loading="lazy"
-              onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1000";
-              }}
-            />
-            <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition-colors">
-              <PlayCircle size={64} className="text-white drop-shadow-lg" />
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="flex-1 order-1 md:order-2 space-y-8">
-        <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">Visítanos y siéntete <br/>como en casa</h2>
-        <p className="text-xl text-slate-600 dark:text-slate-400 font-bold italic leading-relaxed">
-          "Estamos ubicados estratégicamente justo frente a la entrada principal de la Embajada de Estados Unidos."
-        </p>
-        <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-           {(ALICE_KNOWLEDGE as any).office_tour}
-        </p>
-        <div className="flex flex-col sm:flex-row gap-5 pt-4">
-          <a href={`https://wa.me/502${ALICE_KNOWLEDGE.whatsapp}`} className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-black shadow-xl shadow-blue-500/30 hover:bg-blue-700 transition-all flex items-center justify-center gap-3 text-lg" target="_blank" rel="noopener noreferrer">
-            Agendar cita <Phone size={22} />
-          </a>
-          <a href="https://maps.app.goo.gl/arCh7pbgHUQxHhap6" target="_blank" rel="noopener noreferrer" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-700 px-10 py-5 rounded-2xl font-black shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-3 text-lg">
-            Ver ubicación <MapPin size={22} className="text-blue-600 dark:text-blue-400" />
-          </a>
-        </div>
-        <div className="flex items-center gap-6 pt-4">
-          <div className="flex -space-x-4">
-            {[1,2,3,4].map(i => (
-              <div key={i} className="w-12 h-12 rounded-full border-2 border-white dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-slate-800">
-                <img src={`https://i.pravatar.cc/100?u=office${i}`} alt="Avatar" />
-              </div>
-            ))}
-          </div>
-          <p className="text-xs font-black uppercase tracking-widest text-slate-400">Nuestro equipo está listo para recibirte.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-);
-
-const VideoGallery = () => (
-  <section className="py-24 bg-slate-900 dark:bg-black text-white overflow-hidden relative">
-    <div className="max-w-7xl mx-auto px-4 relative z-10">
-      <div className="text-center mb-16 space-y-4">
-        <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter">Videos Informativos</h2>
-        <p className="text-slate-400 font-bold">Consejos rápidos y educativos sobre tu trámite.</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {[
-          { title: "Mitos sobre la visa B1/B2", desc: "Lo que el cónsul realmente busca.", video: null },
-          { title: "Recorrido por nuestras oficinas", desc: "Conoce dónde preparamos tu éxito.", video: recorridoVideo }
-        ].map((v, i) => (
-          <div key={i} className="aspect-video bg-slate-800 dark:bg-slate-900 rounded-[3rem] overflow-hidden shadow-2xl relative group cursor-pointer border border-white/5">
-             {v.video ? (
-                <video 
-                  src={v.video} 
-                  autoPlay={false} 
-                  controls 
-                  className="w-full h-full object-cover"
-                  poster={oficinaImg} 
-                />
-             ) : (
-                <>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-10 flex flex-col justify-end z-10">
-                    <h4 className="text-2xl font-black mb-1 uppercase tracking-tight">{v.title}</h4>
-                    <p className="text-slate-400 font-medium">{v.desc}</p>
-                  </div>
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                    <PlayCircle size={80} className="text-white/30 group-hover:text-white group-hover:scale-110 drop-shadow-2xl transition-all duration-500" />
-                  </div>
-                </>
-             )}
-          </div>
         ))}
       </div>
     </div>
@@ -2352,14 +2137,11 @@ export default function App() {
       <Navbar theme={theme} toggleTheme={toggleTheme} />
       <main>
         <Hero />
-        <CoreIdentity />
         <Services />
         <Process />
-        <OfficeTour />
         <LocationSection />
         <MythsSection />
         <ConsultationTracker />
-        <VideoGallery />
         <Testimonials />
         <Downloads />
         <FormSection ref={formRef} />
