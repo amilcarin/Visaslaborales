@@ -36,13 +36,12 @@ import Markdown from 'react-markdown';
 
 import { jsPDF } from 'jspdf';
 import { GoogleGenAI } from "@google/genai";
-import { initializeApp } from 'firebase/app';
 import { 
-  getFirestore, collection, addDoc, getDoc, setDoc, doc, updateDoc, 
+  collection, addDoc, getDoc, setDoc, doc, updateDoc, 
   onSnapshot, query, where, orderBy, limit, serverTimestamp, getDocFromServer
 } from 'firebase/firestore';
 import { 
-  getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User 
+  onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User 
 } from 'firebase/auth';
 import { db, auth } from './lib/firebase';
 
