@@ -124,7 +124,7 @@ const VoiceAssistant = () => {
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
 
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -906,7 +906,7 @@ const BotAlice = () => {
       .replace(/(\d{2})(\d{2})[- ]?(\d{2})(\d{2})/g, '$1 $2 $3 $4');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
       const response = await ai.models.generateContent({
         model: "gemini-3.1-flash-tts-preview",
         contents: [{ parts: [{ text: `Actúa como una asistente experta real llamada Alice. Narra este texto con una voz de mujer natural, fluida y cálida. Usa variaciones de tono expresivas según el contenido, haz pausas naturales donde corresponda y suena muy empática. Evita sonar como un robot. Texto: ${cleanText}` }] }],
@@ -1000,7 +1000,7 @@ const BotAlice = () => {
     setIsTyping(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
       const prompt = `
         Eres Alice, la asistente virtual experta y oficial de "Centro de Oportunidades Laborales" (C.O.L.) en Guatemala. 
         Tu personalidad: Profesional, amable, empática y sumamente eficiente.
